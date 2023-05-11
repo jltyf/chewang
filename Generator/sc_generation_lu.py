@@ -431,7 +431,7 @@ class Task_lu:
             f1.write(line)
         f1.close()
 
-    def generateScenarios(self, abs_path, output_path, textBrowser=0):
+    def generateScenarios_test(self, abs_path, output):
         pos_path = os.path.join(abs_path, 'data.txt')
         information_path = os.path.join(abs_path, 'information.json')
         with open(file='plateNo.txt', encoding='utf8') as f:
@@ -440,10 +440,45 @@ class Task_lu:
         with open(file='offset.txt', encoding='utf8') as f:
             offset_list = f.read().splitlines()
 
+        output = os.path.join(output, os.path.basename(abs_path))
+        if not os.path.exists(output):
+            os.mkdir(output)
+        with open(information_path, encoding='utf-8') as f:
+            file_contents = f.read()
+        parsed_json = json.loads(file_contents, encoding='utf-8')
+        target_number = parsed_json['number']
+        target_area = parsed_json['area']
+        results = smooth_data(pos_path, target_number, target_area, plate_list, offset_list)
+        gps, obs_list, time = results[0], results[1], results[2]
+        obsL = []
+        for obj in obs_list:
+            if len(obj) > 10:
+                obsL.append(read_gps(obj, time))
 
-        output_path = os.path.join(output_path, os.path.basename(abs_path))
-        if not os.path.exists(output_path):
-            os.mkdir(output_path)
+        sceperiod = math.ceil((time[-1] - time[0]) / 1000)
+        ped_flag = True
+
+        s = Scenario(gps, obsL, time, sceperiod, ped_flag, abs_path, 0, 0)
+        s.print_permutations()
+        filename = output + '/SIMULATION'
+        if not os.path.exists:
+            os.mkdir(filename)
+        files = s.generate(filename)
+        self.format_two(filename)
+        self.changeCDATA(files[0][0])
+
+    def generateScenarios(self, abs_path, output, textBrowser=0):
+        pos_path = os.path.join(abs_path, 'data.txt')
+        information_path = os.path.join(abs_path, 'information.json')
+        with open(file='plateNo.txt', encoding='utf8') as f:
+            plate_list = f.read().splitlines()
+
+        with open(file='offset.txt', encoding='utf8') as f:
+            offset_list = f.read().splitlines()
+
+        output = os.path.join(output, os.path.basename(abs_path))
+        if not os.path.exists(output):
+            os.mkdir(output)
         with open(information_path, encoding='utf-8') as f:
             file_contents = f.read()
         parsed_json = json.loads(file_contents, encoding='utf-8')
@@ -468,24 +503,24 @@ class Task_lu:
 
         s = Scenario(gps, obsL, time, sceperiod, ped_flag, abs_path, 0, 0)
         s.print_permutations()
-        filename = output_path + '/SIMULATION'
+        filename = output + '/SIMULATION'
         if not os.path.exists:
             os.mkdir(filename)
         files = s.generate(filename)
         # self.generate_osgb(output_path, files[0][0].replace('xosc', 'xodr'))
         self.format_two(filename)
         self.changeCDATA(files[0][0])
-        textBrowser.append(f'场景{output_path}还原成功')
+        textBrowser.append(f'场景{output}还原成功')
         QApplication.processEvents()
 
-    def batchRun(self, input_path, output_path, textBrowser):
+    def batchRun(self, input_path, output, textBrowser):
         files = self.getFile(input_path, self.keyFileName)
         error_count = 0
         correct_count = 0
         for di, absPath in enumerate(sorted(files)):
             QApplication.processEvents()
             try:
-                self.generateScenarios(absPath, output_path, textBrowser)
+                self.generateScenarios(absPath, output, textBrowser)
                 correct_count += 1
             except:
                 textBrowser.append(f'场景{absPath}还原失败')
@@ -502,20 +537,10 @@ class Task_lu:
         textBrowser.append(f'本次任务中成功还原场景数：{correct_count}\n本次任务中未能还原场景数：{error_count}')
         textBrowser.moveCursor(textBrowser.textCursor().End)
 
-    def batchRun_test(self, input_path, output_path):
+    def batchRun_test(self, input_path, output):
         files = self.getFile(input_path, self.keyFileName)
         for di, absPath in enumerate(sorted(files)):
-            self.generateScenarios(absPath, output_path)
-            # try:
-            #     self.generateScenarios(absPath, output_path)
-            #     correct_count += 1
-            # except:
-            #     error_count += 1
-            #     error = {'time': datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3],
-            #              'traceback': traceback.format_exc()}
-            #     with open('error.log', 'a+') as f:
-            #         json.dump(error, f, indent=4)
-            #         f.write('\n')
+            self.generateScenarios_test(absPath, output)
 
     def GenerateVideo(self):
         os.chdir(os.path.join(os.path.expanduser('~'), 'Desktop/VTDVideoGenerator/VTDController'))
@@ -653,7 +678,7 @@ if __name__ == "__main__":
     rootPath = "/home/tang/Documents/chewang/"
     output_path = "/home/tang/Documents/chewang/test"
     # rootPath = "/home/tang/Desktop/Tang/1+x/today_2023-01-17-15-46-49"
-    a = Task_lu(rootPath, "data21111.txt")
+    a = Task_lu(rootPath, "data.txt")
 
     # 生成场景
     a.batchRun_test(rootPath, output_path)
