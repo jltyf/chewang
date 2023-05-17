@@ -440,9 +440,10 @@ class Task_lu:
         with open(file='offset.txt', encoding='utf8') as f:
             offset_list = f.read().splitlines()
 
-        output = os.path.join(output, os.path.basename(abs_path))
-        if not os.path.exists(output):
-            os.mkdir(output)
+        if abs_path != output:
+            output = os.path.join(output, os.path.basename(abs_path))
+            if not os.path.exists(output):
+                os.mkdir(output)
         with open(information_path, encoding='utf-8') as f:
             file_contents = f.read()
         parsed_json = json.loads(file_contents, encoding='utf-8')
@@ -464,7 +465,7 @@ class Task_lu:
         if not os.path.exists:
             os.mkdir(filename)
         files = s.generate(filename)
-        self.format_two(filename)
+        self.generate_osgb(output_path, files[0][0].replace('xosc', 'xodr'))
         self.changeCDATA(files[0][0])
 
     def generateScenarios(self, abs_path, output, textBrowser=0):
@@ -481,6 +482,12 @@ class Task_lu:
             os.mkdir(output)
         with open(information_path, encoding='utf-8') as f:
             file_contents = f.read()
+
+        if abs_path != output:
+            output = os.path.join(output, os.path.basename(abs_path))
+            if not os.path.exists(output):
+                os.mkdir(output)
+
         parsed_json = json.loads(file_contents, encoding='utf-8')
         target_number = parsed_json['number']
         target_area = parsed_json['area']
@@ -507,8 +514,6 @@ class Task_lu:
         if not os.path.exists:
             os.mkdir(filename)
         files = s.generate(filename)
-        # self.generate_osgb(output_path, files[0][0].replace('xosc', 'xodr'))
-        self.format_two(filename)
         self.changeCDATA(files[0][0])
         textBrowser.append(f'场景{output}还原成功')
         QApplication.processEvents()
@@ -542,149 +547,11 @@ class Task_lu:
         for di, absPath in enumerate(sorted(files)):
             self.generateScenarios_test(absPath, output)
 
-    def GenerateVideo(self):
-        os.chdir(os.path.join(os.path.expanduser('~'), 'Desktop/VTDVideoGenerator/VTDController'))
-        print(os.getcwd())
-        command = './VTDController config/default.ini'
-        os.system(command=command)
-        # 批量生成视频
-        # imagelist = self.getFile(root_path, 'image')
-        # for item in imagelist:
-        #     strs = item.split('/')
-        #     respath = os.path.join(item, "video.mp4")
-        #     # respath = os.path.join(res_path,strs[-3],strs[-2],"video.mp4")
-        #     print('---------------------')
-        #     # os.makedirs(os.path.join(res_path,strs[-3],strs[-2]))
-        #     command = "ffmpeg -f image2 -r 10 -pattern_type glob -i '" + item + "/image/*.jpg" + "' -y '" + respath + "'"
-        #     print(command)
-        #     process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-        #     process.wait()
-
-    def generate_osgb(self, root_path, file):
-        # generate osgb file
-        VtdRoot = '/home/tang/VIRES/VTD.2021.3'
-        ROD = VtdRoot + "/Runtime/Tools/ROD/ROD "
-        LicenceAddress = '-s 27500@192.168.11.179'
-        RodProject = " --project " + VtdRoot + "/Runtime/Tools/ROD/DefaultProject/DefaultProject.rpj"
-        SourceOsgbPath = VtdRoot + "/Runtime/Tools/ROD/DefaultProject/Database"
-        xodrFilePath = file
-        generate = ROD + LicenceAddress + RodProject + " --xodr " + xodrFilePath + " -G"
-        os.system(generate)
-
-        # move osgb file
-        sourceOsgbFileName = file[:-4] + "opt.osgb"
-        sourceOsgbFilePath = SourceOsgbPath + "/" + sourceOsgbFileName.split('/')[-1]
-        destOsgbFilePath = sourceOsgbFileName.replace('opt.osgb', 'osgb')
-        os.system("mv " + sourceOsgbFilePath + " " + destOsgbFilePath)
-
-        # remove odr file
-        tempXodrFilePath = VtdRoot + "/Runtime/Tools/ROD/DefaultProject/Odr/" + file.split('/')[-1]
-        os.system("rm " + tempXodrFilePath)
-        print("Complete: " + root_path + "/" + file[:-4] + 'osgb')
-
-    def format_two(self, input_path):
-        """
-        data format:
-        simulation
-            file.xosc
-            file.xodr
-            file.osgb
-        :return:
-        """
-        for root, dirs, files in os.walk(input_path):
-            # root_weichai = root.replace('tang/Desktop', 'cicv')
-            for file in files:
-                if ".xosc" == file[-5:] or ".xml" == file[-4:]:
-
-                    xodrFilePath = ""
-                    osgbFilePath = ""
-
-                    for odrFile in os.listdir(root):
-                        if ".xodr" == odrFile[-5:]:
-                            xodrFilePath = root + "/" + odrFile
-                            break
-
-                    for osgbFile in os.listdir(root):
-                        if ".osgb" == osgbFile[-5:]:
-                            osgbFilePath = root + "/" + osgbFile
-                            break
-
-                    self.path_changer(root + "/" + file, xodrFilePath, osgbFilePath)
-                    print("Change success: " + root + "/" + file)
-
-    def format_three(self, input_path, xodr_path, osgb_path):
-        """
-        data format:
-        simulation
-            file.xosc
-            file.xodr
-            file.osgb
-        :return:
-        """
-        for root, dirs, files in os.walk(input_path):
-            for file in files:
-                if ".xosc" == file[-5:] or ".xml" == file[-4:]:
-
-                    for odrFile in os.listdir(root):
-                        if ".xodr" == odrFile[-5:]:
-                            break
-
-                    for osgbFile in os.listdir(root):
-                        if ".osgb" == osgbFile[-5:]:
-                            break
-
-                    self.path_changer(root + "/" + file, xodr_path, osgb_path)
-                    print("Change success: " + root + "/" + file)
-
-    def path_changer(self, xosc_path, xodr_path, osgb_path):
-        """
-        provided by Dongpeng Ding
-        :param xosc_path:
-        :param xodr_path:
-        :param osgb_path:
-        :return:
-        """
-        tree = ET.parse(xosc_path)
-        treeRoot = tree.getroot()
-
-        # for OpenScenario v0.9, v1.0
-        for RoadNetwork in treeRoot.findall('RoadNetwork'):
-
-            for Logics in RoadNetwork.findall('LogicFile'):
-                Logics.attrib['filepath'] = xodr_path
-            for SceneGraph in RoadNetwork.findall('SceneGraphFile'):
-                SceneGraph.attrib['filepath'] = osgb_path
-
-            for Logics in RoadNetwork.findall('Logics'):
-                Logics.attrib['filepath'] = xodr_path
-            for SceneGraph in RoadNetwork.findall('SceneGraph'):
-                SceneGraph.attrib['filepath'] = osgb_path
-
-        # for VTD xml
-        for Layout in treeRoot.findall('Layout'):
-            Layout.attrib['File'] = xodr_path
-            Layout.attrib['Database'] = osgb_path
-
-        tree.write(xosc_path, xml_declaration=True)
-
 
 if __name__ == "__main__":
-    # input_parm = sys.argv
-
-    # rootPath = input_parm[1]
-
-    # rootPath = "/home/tang/Desktop/Tang/sample"
-    # rootPath = "/home/tang/Documents/chewang/xm/20211124_JTJBGMCA1L2062237"
     rootPath = "/home/tang/Documents/chewang/"
     output_path = "/home/tang/Documents/chewang/test"
-    # rootPath = "/home/tang/Desktop/Tang/1+x/today_2023-01-17-15-46-49"
     a = Task_lu(rootPath, "data.txt")
 
     # 生成场景
     a.batchRun_test(rootPath, output_path)
-
-    # # 生成视频
-    # os.chdir(os.path.join(os.path.expanduser('~'), 'Desktop/VTDVideoGenerator/VTDController'))
-    # print(os.getcwd())
-    # command = './VTDController config/default.ini'
-    # os.system(command=command)

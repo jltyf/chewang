@@ -4,11 +4,15 @@ import math
 import time
 
 import pyproj
-from pyproj import CRS, Transformer
 import pandas as pd
+from pyproj import CRS, Transformer
 import requests
 from math import sin, cos
 from scenariogeneration import xosc
+
+
+# import numpy as np
+# import matplotlib.pyplot as plt
 
 
 class Point(object):
@@ -59,12 +63,6 @@ def convert(x):
     return timeStamp
 
 
-# def change_heading(heading):
-#     if heading
-#
-#     return timeStamp
-
-
 def speed2heading(speed_dict):
     speed_dict = eval(speed_dict)
     north_speed = speed_dict['y']
@@ -98,6 +96,13 @@ def speedy(speed_dict):
     return north_speed
 
 
+# def plt_trail(x, y):
+#     f1 = np.poly1d(np.polyfit(x, y, 4))
+#     plt.plot(x, y, '.')
+#     plt.plot(x, f1(x))
+#     plt.show()
+
+
 def smooth_data(pos_path, target_number, target_area, plate_list, offset_list):
     ego_id = 0
     with open(file=pos_path, encoding='utf8') as f:
@@ -121,23 +126,6 @@ def smooth_data(pos_path, target_number, target_area, plate_list, offset_list):
             if ego_id == 0 and obj['plateNo'] in plate_list and obj['plateNo'] == target_number:
                 ego_id = obj['uuid'][-8:]
             pos_data = pd.concat([pos_data, tmp_df])
-    if ego_id == 0:
-        return 401
-    pos_data = pos_data.reset_index(drop=True)
-    ego_data = pos_data[pos_data['id'] == ego_id].reset_index(drop=True)
-    obs_data = pos_data[pos_data['id'] != ego_id].reset_index(drop=True)
-    start_time = ego_data['time'].min()
-    end_time = ego_data['time'].max()
-    obs_data = obs_data[(obs_data['time'] >= start_time) & (obs_data['time'] <= end_time)].reset_index(drop=True)
-
-    # 设置origin的原因是时区的时差问题
-    ego_data['data_time'] = pd.to_datetime(ego_data['time'], unit='ms')
-    ego_data = ego_data.resample('100ms', on='data_time').mean().bfill()
-    ego_data['tmp'] = ego_data.index
-    time_list = (ego_data.tmp.apply(lambda x: convert(x))).values.tolist()
-
-    ego_data['time'] = ego_data.index
-    ego_data = ego_data[['time', 'longitude', 'latitude', 'heading', 'altitude']]
     offset_x, offset_y = (-1, -1)
     for offset in offset_list:
         if target_area == offset[4:7]:
@@ -145,11 +133,33 @@ def smooth_data(pos_path, target_number, target_area, plate_list, offset_list):
             offset_x = int(offset_value.split(',')[0])
             offset_y = int(offset_value.split(',')[1])
             break
-    if offset_x == -1 and offset_y == -1:
+    if ego_id == 0:
+        return 401
+    elif offset_x == -1 and offset_y == -1:
         return 402
+    pos_data = pos_data.reset_index(drop=True)
+    ego_data = pos_data[pos_data['id'] == ego_id].reset_index(drop=True)
+    obs_data = pos_data[pos_data['id'] != ego_id].reset_index(drop=True)
+    ego_data['heading'] = ego_data['heading'].astype('float')
+    start_time = ego_data['time'].min()
+    end_time = ego_data['time'].max()
+    obs_data = obs_data[(obs_data['time'] >= start_time) & (obs_data['time'] <= end_time)].reset_index(drop=True)
     ego_data[['x', 'y']] = ego_data.apply(get_coordinate_new_2, axis=1, result_type='expand')
+    ego_data = ego_data[['time', 'x', 'y', 'heading', 'altitude']]
     ego_data['x'] = ego_data['x'] - offset_x
     ego_data['y'] = ego_data['y'] - offset_y
+    ego_data['z'] = 0
+
+    # plt_trail(ego_data['x'].values.tolist(), ego_data['y'].values.tolist())
+
+    # 设置origin的原因是时区的时差问题
+    ego_data['data_time'] = pd.to_datetime(ego_data['time'], unit='ms')
+    ego_data = ego_data.resample('100ms', on='data_time').mean().bfill()
+    ego_data['tmp'] = ego_data.index
+    time_list = (ego_data.tmp.apply(lambda x: convert(x))).values.tolist()
+
+    # plt_trail(ego_data['x'].values.tolist(), ego_data['y'].values.tolist())
+
     obs_data['data_time'] = pd.to_datetime(obs_data['time'], unit='ms')
     obs_data[['x', 'y']] = obs_data.apply(get_coordinate_new_2, axis=1, result_type='expand')
     obs_data['x'] = obs_data['x'] - offset_x
@@ -169,33 +179,16 @@ def smooth_data(pos_path, target_number, target_area, plate_list, offset_list):
         obs_df['time'] = obs_df.time.apply(lambda x: convert(x))
         obs_df = obs_df[['time', 'id', 'type', 'x', 'y', 'z', 'heading']]
         obslist.append(obs_df.values.tolist())
+    ego_data['tmp'] = pd.to_datetime(ego_data['tmp'])
+    ego_data['tmp'] = ego_data['tmp'].astype('int64')
     gps = ego_data.values.tolist()
     ego_position = list()
     for result in gps:
         if len(result) > 0:
             ego_position.append(
-                xosc.WorldPosition(x=float(result[5]), y=float(result[6]),
-                                   z=float(result[4]), h=math.radians(float(90 - float(result[3])))))
+                xosc.WorldPosition(x=float(result[0]), y=float(result[1]),
+                                   z=float(result[3]), h=math.radians(float(90 - float(result[2])))))
     return ego_position, obslist, time_list
-
-
-def change_CDATA(filepath):
-    '行人场景特例，对xosc文件内的特殊字符做转换'
-    f = open(filepath, "r", encoding="UTF-8")
-    txt = f.readline()
-    all_line = []
-    # txt是否为空可以作为判断文件是否到了末尾
-    while txt:
-        txt = txt.replace("&lt;", "<").replace("&gt;", ">").replace("&amp;", "&").replace("&quot;", '"').replace(
-            "&apos;", "'")
-        all_line.append(txt)
-        # 读取文件的下一行
-        txt = f.readline()
-    f.close()
-    f1 = open(filepath, 'w', encoding="UTF-8")
-    for line in all_line:
-        f1.write(line)
-    f1.close()
 
 
 def get_coordinate(longitude, latitude):
