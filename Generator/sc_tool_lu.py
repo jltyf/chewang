@@ -13,7 +13,7 @@ from math import sin, cos
 from scenariogeneration import xosc
 
 
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 
 
 class Point(object):
