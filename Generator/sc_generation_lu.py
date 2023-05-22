@@ -192,17 +192,6 @@ class Scenario(ScenarioGenerator):
             xosc.WorldPosition(x=positionEgo[0].x, y=positionEgo[0].y, z=positionEgo[0].z, h=positionEgo[0].h, p=0,
                                r=0)))
         init.add_init_action(scenario_model.ego_name, egospeed)
-        for player in self.object_dict:
-            if not self.object_dict:
-                break
-            row = self.object_dict[player]
-            x = -10000 if (row[0].ObjectType != 7) else float(row[0].x)
-            y = 100001 if (row[0].ObjectType != 7) else float(row[0].y)
-
-            init.add_init_action(player, xosc.TeleportAction(
-                xosc.WorldPosition(x=x, y=y, z=0, h=row[0].h, p=0, r=0)))
-
-            init.add_init_action(player, objspeed)
 
         # ego car
         trajectory = xosc.Trajectory('oscTrajectory0', False)
@@ -291,7 +280,18 @@ class Scenario(ScenarioGenerator):
                     xosc.WorldPosition(x=x, y=y, z=0, h=h, p=0, r=0))
                 step_dataM.append(float(rowNew[j].time))
                 lasth = h
-                last_time = rowNew[j].time
+            first_time = rowNew[0].time
+            last_time = rowNew[-1].time
+
+            add_action = xosc.DeleteEntityAction(name)
+            add_trigger = xosc.ValueTrigger(name='entity_add_trigger', delay=0,
+                                            conditionedge=xosc.ConditionEdge.rising,
+                                            valuecondition=xosc.SimulationTimeCondition(value=first_time,
+                                                                                        rule=xosc.Rule.greaterThan))
+            add_event = xosc.Event('Event_del', xosc.Priority.overwrite)
+            add_event.add_trigger(add_trigger)
+            add_event.add_action('del_action', add_action)
+            man.add_event(add_event)
 
             trajectoryM = xosc.Trajectory('oscTrajectory1', False)
             polylineM = xosc.Polyline(step_dataM, positionM)
@@ -553,8 +553,8 @@ class Task_lu:
 
 
 if __name__ == "__main__":
-    rootPath = "/home/tang/Documents/chewang/csvdata/20230301143611"
-    output_path = "/home/tang/Documents/chewang/csvdata/20230301143611"
+    rootPath = "/home/tang/Documents/chewang/csvdata/20230217162003"
+    output_path = "/home/tang/Documents/chewang/csvdata/20230217162003"
     a = Task_lu(rootPath, "data.csv")
 
     # 生成场景
