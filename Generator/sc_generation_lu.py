@@ -438,7 +438,7 @@ class Task_lu:
         f1.close()
 
     def generateScenarios_test(self, abs_path, output):
-        pos_path = os.path.join(abs_path, 'data.txt')
+        pos_path = os.path.join(abs_path, 'data.csv')
         information_path = os.path.join(abs_path, 'information.json')
         with open(file='plateNo.txt', encoding='utf8') as f:
             plate_list = f.read().splitlines()
@@ -476,7 +476,7 @@ class Task_lu:
         self.changeCDATA(files[0][0])
 
     def generateScenarios(self, abs_path, output, textBrowser=0):
-        pos_path = os.path.join(abs_path, 'data.txt')
+        pos_path = os.path.join(abs_path, 'data.csv')
         information_path = os.path.join(abs_path, 'information.json')
         with open(file='plateNo.txt', encoding='utf8') as f:
             plate_list = f.read().splitlines()
@@ -553,9 +553,9 @@ class Task_lu:
 
 
 if __name__ == "__main__":
-    rootPath = "/home/tang/Documents/chewang"
-    output_path = "/home/tang/Documents/chewang/test"
-    a = Task_lu(rootPath, "data.txt")
+    rootPath = "/home/tang/Documents/chewang/csvdata/20230301143611"
+    output_path = "/home/tang/Documents/chewang/csvdata/20230301143611"
+    a = Task_lu(rootPath, "data.csv")
 
     # 生成场景
     a.batchRun_test(rootPath, output_path)

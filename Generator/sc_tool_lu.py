@@ -114,28 +114,46 @@ def speedy(speed_dict):
 
 def smooth_data(pos_path, target_number, target_area, plate_list, offset_list):
     ego_id = 0
-    with open(file=pos_path, encoding='utf8') as f:
-        base_data = f.readlines()
-    pos_data = pd.DataFrame(
-        columns=['time', 'longitude', 'latitude', 'heading', 'altitude', 'type', 'id', 'speed'])
-    for ms in base_data:
-        ms_dict = eval(ms)
-        for obj in ms_dict['targets']:
-            if (obj['type']) != 2 and (obj['type']) != 0 and (obj['type']) != 7:
-                continue
-            tmp_df = pd.DataFrame(
-                columns=['time', 'longitude', 'latitude', 'heading', 'altitude', 'type', 'id', 'speed'])
-            tmp_df.loc[0, 'time'] = ms_dict['timestamp']
-            tmp_df.loc[0, 'longitude'] = obj['longitude']
-            tmp_df.loc[0, 'latitude'] = obj['latitude']
-            tmp_df.loc[0, 'heading'] = obj['heading']
-            tmp_df.loc[0, 'altitude'] = obj['elevation']
-            tmp_df.loc[0, 'type'] = obj['type']
-            tmp_df.loc[0, 'speed'] = obj['speed']
-            tmp_df.loc[0, 'id'] = obj['uuid'][-8:]
-            if ego_id == 0 and obj['plateNo'] in plate_list and obj['plateNo'] == target_number:
-                ego_id = obj['uuid'][-8:]
-            pos_data = pd.concat([pos_data, tmp_df])
+    # 旧的txt格式数据
+    # pos_data = pd.DataFrame(
+    #     columns=['time', 'longitude', 'latitude', 'heading', 'altitude', 'type', 'id', 'speed'])
+    # with open(file=pos_path, encoding='utf8') as f:
+    #     base_data = f.readlines()
+    # for ms in base_data:
+    #     ms_dict = eval(ms)
+    #     for obj in ms_dict['targets']:
+    #         if (obj['type']) != 2 and (obj['type']) != 0 and (obj['type']) != 7:
+    #             continue
+    #         tmp_df = pd.DataFrame(
+    #             columns=['time', 'longitude', 'latitude', 'heading', 'altitude', 'type', 'id', 'speed'])
+    #         tmp_df.loc[0, 'time'] = ms_dict['timestamp']
+    #         tmp_df.loc[0, 'longitude'] = obj['longitude']
+    #         tmp_df.loc[0, 'latitude'] = obj['latitude']
+    #         tmp_df.loc[0, 'heading'] = obj['heading']
+    #         tmp_df.loc[0, 'altitude'] = obj['elevation']
+    #         tmp_df.loc[0, 'type'] = obj['type']
+    #         tmp_df.loc[0, 'speed'] = obj['speed']
+    #         tmp_df.loc[0, 'id'] = obj['uuid'][-8:]
+    #         if ego_id == 0 and obj['plateNo'] in plate_list and obj['plateNo'] == target_number:
+    #             ego_id = obj['uuid'][-8:]
+    #         pos_data = pd.concat([pos_data, tmp_df])
+
+    # 新的txt格式数据
+    pos_data = pd.read_csv(pos_path)
+    pos_data.rename(
+        columns={'时间戳': 'datetime', '感知目标ID': 'id', '感知目标经度': 'longitude', '感知目标纬度': 'latitude',
+                 '高程(dm)': 'altitude', '速度(m/s)': 'speed', '航向角(deg)': 'heading', '感知目标类型': 'type'},
+        inplace=True)
+    pos_data['datetime'] = pd.to_datetime(pos_data['datetime'])
+    pos_data['time'] = pos_data['datetime'].astype('int')
+    pos_data['time'] = pd.to_datetime(pos_data['datetime'], unit='s').dt.tz_localize('UTC').dt.tz_convert(
+        'Asia/Shanghai')
+    pos_data = pos_data[['time', 'id', 'type', 'longitude', 'latitude', 'speed', 'heading', 'altitude']]
+    pos_data['id'] = pos_data['id'].astype('str')
+    pos_data.id = pos_data.id.apply(lambda x: x[-10:])
+    if target_number in pos_data['id'].values:
+        ego_id = target_number
+
     offset_x, offset_y = (-1, -1)
     for offset in offset_list:
         if target_area == offset[4:7]:
@@ -169,7 +187,7 @@ def smooth_data(pos_path, target_number, target_area, plate_list, offset_list):
     diff = ego_data['heading'] - ego_data['heading'].shift(1)
     ego_data['diff'] = diff.abs()
     diff_data = ego_data[ego_data['diff'] >= 25]
-    if 300 < abs(diff_data['time'].min() - diff_data['time'].max()) < 2500:
+    if not diff_data.empty and (300 < abs(diff_data['time'].min() - diff_data['time'].max()) < 2500):
         error_start = ego_data[ego_data['time'] == diff_data['time'].min()].index[0]
         error_end = ego_data[ego_data['time'] == diff_data['time'].max()].index[0]
         del_time = datetime.timedelta(milliseconds=100)

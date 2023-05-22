@@ -74,11 +74,11 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
     def generate(self, model, input_path, output_path):
         if model == '路端数据还原':
-            new_task = Task_lu(input_path, "data.txt")
+            new_task = Task_lu(input_path, "data.csv")
         elif model == '车端数据还原':
-            new_task = Task_c(input_path, "data.txt")
+            new_task = Task_c(input_path, "data.csv")
         else:
-            new_task = Task(input_path, "data.txt")
+            new_task = Task(input_path, "data.csv")
 
         self.change_text('任务正在运行，请耐心等待')
         QApplication.processEvents()
