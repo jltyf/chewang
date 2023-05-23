@@ -46,7 +46,7 @@ def read_gps(obsList, time_list):
     for result in obsList:
         time_now = (result[0] - time_list[0]) / 1000
         h = math.radians(float(90 - result[6]))
-        z = result[5]/10
+        z = result[5] / 10
         position.append(
             ObsPosition(time_now, str(result[1]), result[2], float(result[3]), float(result[4]), z, h))
     return position
