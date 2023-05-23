@@ -217,6 +217,7 @@ class Scenario(ScenarioGenerator):
             if h == 0:
                 h = 0.000001
             step_dataEgo.append(time)
+            # positionEgo1.append(xosc.WorldPosition(x=x, y=y, z=z, h=h, p=0, r=0))
             positionEgo1.append(xosc.WorldPosition(x=x, y=y, z=0, h=h, p=0, r=0))
             com_ego_pos_dict[time] = [x, y]
             lasth = h
@@ -277,6 +278,7 @@ class Scenario(ScenarioGenerator):
                 h = float(rowNew[j].h)
 
                 positionM.append(
+                    # xosc.WorldPosition(x=x, y=y, z=z, h=h, p=0, r=0))
                     xosc.WorldPosition(x=x, y=y, z=0, h=h, p=0, r=0))
                 step_dataM.append(float(rowNew[j].time))
                 lasth = h
@@ -553,7 +555,7 @@ class Task_lu:
 
 
 if __name__ == "__main__":
-    rootPath = "/home/tang/Documents/chewang/csvdata/"
+    rootPath = "/home/tang/Documents/chewang/csvdata"
     output_path = "/home/tang/Documents/chewang/0523"
     a = Task_lu(rootPath, "data.csv")
 

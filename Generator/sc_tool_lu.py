@@ -43,14 +43,10 @@ class ObsPosition(object):
 
 def read_gps(obsList, time_list):
     position = []
-
     for result in obsList:
-        # time_now = time.mktime((result[0]))
         time_now = (result[0] - time_list[0]) / 1000
-        # h = float(math.radians(result[5]-45))
-        x = float(90 - result[6])
         h = math.radians(float(90 - result[6]))
-        z = 0
+        z = result[5]/10
         position.append(
             ObsPosition(time_now, str(result[1]), result[2], float(result[3]), float(result[4]), z, h))
     return position
@@ -114,6 +110,7 @@ def speedy(speed_dict):
 
 def smooth_data(pos_path, target_number, target_area, plate_list, offset_list):
     ego_id = 0
+
     # 旧的txt格式数据
     # pos_data = pd.DataFrame(
     #     columns=['time', 'longitude', 'latitude', 'heading', 'altitude', 'type', 'id', 'speed'])
@@ -177,7 +174,6 @@ def smooth_data(pos_path, target_number, target_area, plate_list, offset_list):
     ego_data = ego_data[['time', 'x', 'y', 'heading', 'altitude']]
     ego_data['x'] = ego_data['x'] + offset_x
     ego_data['y'] = ego_data['y'] + offset_y
-    ego_data['z'] = 0
 
     # plt_trail(ego_data['x'].values.tolist(), ego_data['y'].values.tolist())
 
@@ -207,7 +203,6 @@ def smooth_data(pos_path, target_number, target_area, plate_list, offset_list):
     obs_data[['x', 'y']] = obs_data.apply(get_coordinate_new_2, axis=1, result_type='expand')
     obs_data['x'] = obs_data['x'] + offset_x
     obs_data['y'] = obs_data['y'] + offset_y
-    obs_data['z'] = 0
     obs_data['id'] = obs_data['id'].astype('int')
     obs_data['type'] = obs_data['type'].astype('float')
     obs_data['heading'] = obs_data['heading'].astype('float')
@@ -220,7 +215,7 @@ def smooth_data(pos_path, target_number, target_area, plate_list, offset_list):
         obs_df.dropna(inplace=True, axis=0)
         obs_df['time'] = obs_df.index
         obs_df['time'] = obs_df.time.apply(lambda x: convert(x))
-        obs_df = obs_df[['time', 'id', 'type', 'x', 'y', 'z', 'heading']]
+        obs_df = obs_df[['time', 'id', 'type', 'x', 'y', 'altitude', 'heading']]
         obslist.append(obs_df.values.tolist())
     ego_data['tmp'] = pd.to_datetime(ego_data['tmp'])
     ego_data['tmp'] = ego_data['tmp'].astype('int64')
