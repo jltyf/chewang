@@ -42,7 +42,7 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             output_path = input_path
         elif not os.path.exists(output_path):
             try:
-                os.mkdir(output_path)
+                os.makedirs(output_path)
             except:
                 self.change_text('输出目录不存在，且创建失败，请确认！')
                 self.change_button('enable')
