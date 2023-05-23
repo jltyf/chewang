@@ -156,7 +156,6 @@ class Scenario(ScenarioGenerator):
 
     def scenario(self, **kwargs):
         road = xosc.RoadNetwork(self.road_file, scenegraph="/simulation0.osgb")
-        com_ego_pos_dict = dict()
         scenario_model = ScenarioModel()
         scenario_model.entities.add_scenario_object(scenario_model.ego_name, scenario_model.red_veh, scenario_model.cnt)
         positionEgo = self.gps
@@ -219,7 +218,6 @@ class Scenario(ScenarioGenerator):
             step_dataEgo.append(time)
             # positionEgo1.append(xosc.WorldPosition(x=x, y=y, z=z, h=h, p=0, r=0))
             positionEgo1.append(xosc.WorldPosition(x=x, y=y, z=0, h=h, p=0, r=0))
-            com_ego_pos_dict[time] = [x, y]
             lasth = h
 
         true_end_time = step_dataEgo[-1]
@@ -402,7 +400,6 @@ class Task_lu:
         :return:
         """
         for root, dirs, files in os.walk(input_path):
-            # root_weichai = root.replace('tang/Desktop', 'cicv')
             for file in files:
                 if ".xosc" == file[-5:] or ".xml" == file[-4:]:
 
