@@ -469,7 +469,7 @@ class Task_lu:
         s.print_permutations()
         filename = output + '/SIMULATION'
         if not os.path.exists:
-            os.mkdir(filename)
+            os.makedirs(filename)
         files = s.generate(filename)
         generate_osgb(output_path, files[0][0].replace('xosc', 'xodr'))
         self.format_two(filename)
@@ -516,7 +516,7 @@ class Task_lu:
         s.print_permutations()
         filename = output + '/SIMULATION'
         if not os.path.exists:
-            os.mkdir(filename)
+            os.makedirs(filename)
         files = s.generate(filename)
         self.changeCDATA(files[0][0])
         textBrowser.append(f'场景{output}还原成功')
