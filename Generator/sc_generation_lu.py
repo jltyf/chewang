@@ -449,7 +449,7 @@ class Task_lu:
         if abs_path != output:
             output = os.path.join(output, os.path.basename(abs_path))
             if not os.path.exists(output):
-                os.mkdir(output)
+                os.makedirs(output)
         with open(information_path, encoding='utf-8') as f:
             file_contents = f.read()
         parsed_json = json.loads(file_contents, encoding='utf-8')
@@ -490,7 +490,7 @@ class Task_lu:
         if abs_path != output:
             output = os.path.join(output, os.path.basename(abs_path))
             if not os.path.exists(output):
-                os.mkdir(output)
+                os.makedirs(output)
 
         parsed_json = json.loads(file_contents, encoding='utf-8')
         target_number = parsed_json['number']
@@ -553,8 +553,8 @@ class Task_lu:
 
 
 if __name__ == "__main__":
-    rootPath = "/home/tang/Documents/chewang/csvdata/20230217162003"
-    output_path = "/home/tang/Documents/chewang/csvdata/20230217162003"
+    rootPath = "/home/tang/Documents/chewang/csvdata/"
+    output_path = "/home/tang/Documents/chewang/0523"
     a = Task_lu(rootPath, "data.csv")
 
     # 生成场景
