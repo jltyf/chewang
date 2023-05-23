@@ -108,7 +108,7 @@ def speedy(speed_dict):
 #     plt.show()
 
 
-def smooth_data(pos_path, target_number, target_area, plate_list, offset_list):
+def smooth_data(pos_path, target_number, target_area, offset_list):
     ego_id = 0
 
     # 旧的txt格式数据

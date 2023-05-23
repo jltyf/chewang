@@ -442,9 +442,6 @@ class Task_lu:
     def generateScenarios_test(self, abs_path, output):
         pos_path = os.path.join(abs_path, 'data.csv')
         information_path = os.path.join(abs_path, 'information.json')
-        with open(file='plateNo.txt', encoding='utf8') as f:
-            plate_list = f.read().splitlines()
-
         with open(file='offset.txt', encoding='utf8') as f:
             offset_list = f.read().splitlines()
 
@@ -457,7 +454,7 @@ class Task_lu:
         parsed_json = json.loads(file_contents, encoding='utf-8')
         target_number = parsed_json['number']
         target_area = parsed_json['area']
-        results = smooth_data(pos_path, target_number, target_area, plate_list, offset_list)
+        results = smooth_data(pos_path, target_number, target_area, offset_list)
         gps, obs_list, time, init_speed = results[0], results[1], results[2], results[3]
         obsL = []
         for obj in obs_list:
@@ -480,9 +477,6 @@ class Task_lu:
     def generateScenarios(self, abs_path, output, textBrowser=0):
         pos_path = os.path.join(abs_path, 'data.csv')
         information_path = os.path.join(abs_path, 'information.json')
-        with open(file='plateNo.txt', encoding='utf8') as f:
-            plate_list = f.read().splitlines()
-
         with open(file='offset.txt', encoding='utf8') as f:
             offset_list = f.read().splitlines()
 
@@ -497,7 +491,7 @@ class Task_lu:
         parsed_json = json.loads(file_contents, encoding='utf-8')
         target_number = parsed_json['number']
         target_area = parsed_json['area']
-        results = smooth_data(pos_path, target_number, target_area, plate_list, offset_list)
+        results = smooth_data(pos_path, target_number, target_area, offset_list)
         if results == 401:
             textBrowser.append(f'场景片段{abs_path}未找到自动驾驶车辆')
             QApplication.processEvents()
