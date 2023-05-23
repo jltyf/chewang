@@ -181,7 +181,6 @@ class Scenario(ScenarioGenerator):
         init = xosc.Init()
         step_time = xosc.TransitionDynamics(xosc.DynamicsShapes.step, xosc.DynamicsDimension.time, 1)
         egospeed = xosc.AbsoluteSpeedAction(self.init_speed, step_time)
-        objspeed = xosc.AbsoluteSpeedAction(0, step_time)
 
         # init
         step = len(positionEgo) / self.sceperiod
