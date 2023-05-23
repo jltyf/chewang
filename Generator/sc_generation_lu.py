@@ -522,6 +522,11 @@ class Task_lu:
         files = self.getFile(input_path, self.keyFileName)
         error_count = 0
         correct_count = 0
+        if len(files) == 0:
+            textBrowser.clear()
+            textBrowser.append('输入路径中未包含场景数据文件，请确认路径输入是否正确')
+            QApplication.processEvents()
+            return
         for di, absPath in enumerate(sorted(files)):
             QApplication.processEvents()
             try:
