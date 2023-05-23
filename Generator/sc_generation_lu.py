@@ -197,11 +197,9 @@ class Scenario(ScenarioGenerator):
         lasth = float(positionEgo[0].h)
         for j in range(len(positionEgo)):
             if j == 0:
-                # time = 15.01
                 time = 0
             else:
                 time = round(((self.gpsTime[j] - self.gpsTime[0]) / 1000), 2)
-                # time = round(((self.gpsTime[j] - self.gpsTime[0]) / 1000000000), 2)
 
             x = float(positionEgo[j].x)
             y = float(positionEgo[j].y)
@@ -267,7 +265,6 @@ class Scenario(ScenarioGenerator):
             positionM = []
             step_dataM = []
             rowNew = row
-            lasth = float(rowNew[0].h)
 
             for j in range(len(rowNew) - 1):
                 x = float(rowNew[j].x)
@@ -279,7 +276,6 @@ class Scenario(ScenarioGenerator):
                     # xosc.WorldPosition(x=x, y=y, z=z, h=h, p=0, r=0))
                     xosc.WorldPosition(x=x, y=y, z=0, h=h, p=0, r=0))
                 step_dataM.append(float(rowNew[j].time))
-                lasth = h
             first_time = rowNew[0].time
             last_time = rowNew[-1].time
 
