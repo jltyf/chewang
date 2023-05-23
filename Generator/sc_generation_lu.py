@@ -534,6 +534,7 @@ class Task_lu:
                 correct_count += 1
             except:
                 textBrowser.append(f'场景{absPath}还原失败')
+                QApplication.processEvents()
                 error_count += 1
                 error = {'time': datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3],
                          'traceback': traceback.format_exc()}
