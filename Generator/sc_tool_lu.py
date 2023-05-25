@@ -212,6 +212,9 @@ def smooth_data(pos_path, target_number, target_area, offset_list):
     for obj_id, obs_df in groups:
         if len(obs_df) < 27:
             continue
+        obs_df = obs_df.reset_index(drop=True)
+        if obs_df.loc[1, 'time'] - obs_df.loc[0, 'time'] > datetime.timedelta(seconds=4):
+            obs_df = obs_df[1:]
         obs_df = obs_df.resample('100ms', on='data_time').mean()
         obs_df.dropna(inplace=True, axis=0)
         obs_df['time'] = obs_df.index
