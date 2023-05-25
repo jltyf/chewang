@@ -183,7 +183,8 @@ def smooth_data(pos_path, target_number, target_area, offset_list):
     diff = ego_data['heading'] - ego_data['heading'].shift(1)
     ego_data['diff'] = diff.abs()
     diff_data = ego_data[ego_data['diff'] >= 25]
-    if len(diff_data) > 1 and (300 < abs(diff_data['time'].min() - diff_data['time'].max()) < 2500):
+    if len(diff_data) > 1 and (datetime.timedelta(milliseconds=300) < abs(
+            diff_data['time'].min() - diff_data['time'].max()) < datetime.timedelta(milliseconds=5000)):
         error_start = ego_data[ego_data['time'] == diff_data['time'].min()].index[0]
         error_end = ego_data[ego_data['time'] == diff_data['time'].max()].index[0]
         del_time = datetime.timedelta(milliseconds=100)
