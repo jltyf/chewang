@@ -548,7 +548,7 @@ class Task_lu:
 
 if __name__ == "__main__":
     rootPath = "/home/tang/Documents/chewang/csvdata/"
-    output_path = "/home/tang/Documents/chewang/csvdata/"
+    output_path = "/home/tang/Documents/chewang/csvdata/0526"
     a = Task_lu(rootPath, "data.csv")
 
     # 生成场景
