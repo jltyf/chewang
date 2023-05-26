@@ -168,7 +168,7 @@ def smooth_data(pos_path, target_number, target_area, offset_list):
                  '高程(dm)': 'altitude', '速度(m/s)': 'speed', '航向角(deg)': 'heading', '感知目标类型': 'type'},
         inplace=True)
     pos_data['datetime'] = pd.to_datetime(pos_data['datetime'])
-    pos_data['time'] = pos_data['datetime'].astype('int')
+    pos_data['time'] = pos_data['datetime'].astype('int64')
     pos_data['time'] = pd.to_datetime(pos_data['datetime'], unit='s').dt.tz_localize('UTC').dt.tz_convert(
         'Asia/Shanghai')
     pos_data = pos_data[['time', 'id', 'type', 'longitude', 'latitude', 'speed', 'heading', 'altitude']]
@@ -218,7 +218,7 @@ def smooth_data(pos_path, target_number, target_area, offset_list):
     obs_data[['x', 'y']] = obs_data.apply(get_coordinate_new_2, axis=1, result_type='expand')
     obs_data['x'] = obs_data['x'] + offset_x
     obs_data['y'] = obs_data['y'] + offset_y
-    obs_data['id'] = obs_data['id'].astype('int')
+    obs_data['id'] = obs_data['id'].astype('int64')
     obs_data['type'] = obs_data['type'].astype('float')
     obs_data['heading'] = obs_data['heading'].astype('float')
     groups = obs_data.groupby('id')
