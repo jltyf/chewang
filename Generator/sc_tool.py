@@ -1,7 +1,9 @@
+import math
+import time
 
+import pyproj
 from pyproj import CRS, Transformer
 import pandas as pd
-from math import radians
 from scenariogeneration import xosc
 
 
@@ -45,14 +47,14 @@ def read_obs(obsList, time):
         if len(result) > 0:
             position.append(
                 ObsPosition((float(result[0]) - time[0]) / 1000, str(result[1]), result[2], result[3],
-                            float(result[4]), 0, radians(float(result[5]) + 90)))
+                            float(result[4]), 0, math.radians(float(result[5]) + 90)))
     return position
 
 
 def read_gps(path):
     data = pd.read_csv(path)
     position = []
-    time_list = []
+    time = []
     # data = data[['Time', 'East', 'North', 'HeadingAngle']]
     # data = data.loc[data['ID'] == -1, ['Time', 'East', 'North', 'HeadingAngle']].ffill(inplace=True)
     data = data.loc[data['ID'] == -1, ['Time', 'East', 'North', 'HeadingAngle']]
@@ -65,9 +67,9 @@ def read_gps(path):
     y = 0
     for row in data.iterrows():
         position.append(xosc.WorldPosition(x=float(row[1]['East']) - x, y=float(row[1]['North']) - y,
-                                           h=radians(float(row[1]['HeadingAngle']) + 90)))
-        time_list.append(float(row[1]['Time']))
-    return position, x, y, time_list
+                                           h=math.radians(float(row[1]['HeadingAngle']) + 90)))
+        time.append(float(row[1]['Time']))
+    return position, x, y, time
 
 
 def smooth_data(csvPath, obsPath):
@@ -100,12 +102,12 @@ def smooth_data(csvPath, obsPath):
     return obslist
 
 
-# def convert(x):
-#     x = x.to_pydatetime()
-#
-#     timeStamp = int(time.mktime(x.timetuple()) * 1000.0 + x.microsecond / 1000.0)
-#
-#     return timeStamp
+def convert(x):
+    x = x.to_pydatetime()
+
+    timeStamp = int(time.mktime(x.timetuple()) * 1000.0 + x.microsecond / 1000.0)
+
+    return timeStamp
 
 
 # def change_heading(heading):
@@ -114,20 +116,20 @@ def smooth_data(csvPath, obsPath):
 #     return timeStamp
 
 
-# def speed2heading(speed_dict):
-#     speed_dict = eval(speed_dict)
-#     north_speed = speed_dict['y']
-#     east_speed = speed_dict['x']
-#     if east_speed == 0:
-#         return 0
-#     heading = math.degrees(math.atan(north_speed / east_speed))
-#     # if east_speed <= 0 <= north_speed:
-#     #     heading += 90
-#     # elif east_speed <= 0 and north_speed <= 0:
-#     #     heading += 180
-#     # elif north_speed <= 0 <= east_speed:
-#     #     heading -= 90
-#     return heading
+def speed2heading(speed_dict):
+    speed_dict = eval(speed_dict)
+    north_speed = speed_dict['y']
+    east_speed = speed_dict['x']
+    if east_speed == 0:
+        return 0
+    heading = math.degrees(math.atan(north_speed / east_speed))
+    # if east_speed <= 0 <= north_speed:
+    #     heading += 90
+    # elif east_speed <= 0 and north_speed <= 0:
+    #     heading += 180
+    # elif north_speed <= 0 <= east_speed:
+    #     heading -= 90
+    return heading
 
 
 def speedx(speed_dict):
@@ -166,33 +168,16 @@ def change_CDATA(filepath):
     f1.close()
 
 
-def get_coordinate(longitude, latitude):
-    crs = CRS.from_epsg(4326)
-
-    crs_cs = CRS.from_epsg(32650)
-    transformer = Transformer.from_crs(crs, crs_cs)
-    x, y = transformer.transform(latitude, longitude)
-    return x - 455813.908131, y - 4401570.684274
-
-
-def get_coordinate_new(longitude, latitude):
-    crs = CRS.from_epsg(4326)
-
-    crs_cs = CRS.from_epsg(32650)
-    transformer = Transformer.from_crs(crs, crs_cs)
-    x, y = transformer.transform(latitude, longitude)
-    return x, y
-
-
 def get_coordinate_new_2(x):
     longitude = x['longitude']
     latitude = x['latitude']
     crs = CRS.from_epsg(4326)
 
-    crs_cs = CRS.from_epsg(32650)
+    crs_cs = pyproj.CRS.from_epsg(32650)
     transformer = Transformer.from_crs(crs, crs_cs)
     x, y = transformer.transform(latitude, longitude)
     return x, y
 
+
 if __name__ == '__main__':
-    print(1)
+    pass

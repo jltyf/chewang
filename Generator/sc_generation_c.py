@@ -1,8 +1,8 @@
+import math
 import os
 
 import xml.etree.ElementTree as ET
 
-from math import sqrt, pow, ceil, pi, radians, sin, cos
 from scenariogeneration import ScenarioGenerator
 from scenariogeneration import xodr
 from scenariogeneration import xosc
@@ -66,7 +66,7 @@ class Scenario(ScenarioGenerator):
             nexty = 0.000001 if abs(positionEgo[i + 1].y) < 0.000001 else positionEgo[i + 1].y
             h = float(positionEgo[i].h)
 
-            planview.add_fixed_geometry(xodr.Line(sqrt(pow(nextx - x, 2) + pow(nexty - y, 2))), x, y, h)
+            planview.add_fixed_geometry(xodr.Line(math.sqrt(math.pow(nextx - x, 2) + math.pow(nexty - y, 2))), x, y, h)
 
         planview.add_fixed_geometry(xodr.Line(100), nextx, nexty, h)
         # create two different roadmarkings
@@ -146,10 +146,10 @@ class Scenario(ScenarioGenerator):
         # else:
         #     distance_x = -12
 
-        # obj_x = ego_init_x + 12 * cos(radians(ego_init_h))
-        # obj_y = ego_init_y + 12 * sin(radians(ego_init_h))
+        # obj_x = ego_init_x + 12 * math.cos(math.radians(ego_init_h))
+        # obj_y = ego_init_y + 12 * math.sin(math.radians(ego_init_h))
 
-        # for _ in range(ceil(before_start_time * step)):
+        # for _ in range(math.ceil(before_start_time * step)):
         #     step_dataEgo.append(round(_ / step, 2))
         #     positionEgo1.append(
         #         xosc.WorldPosition(x=positionEgo[0].x, y=positionEgo[0].y, z=positionEgo[0].z, h=positionEgo[0].h, p=0,
@@ -180,14 +180,14 @@ class Scenario(ScenarioGenerator):
                 time = round(((self.gpsTime[j] - self.gpsTime[0]) / 1000), 2)
                 # time = round(((self.gpsTime[j] - self.gpsTime[0]) / 1000000000), 2)
 
-            x = float(positionEgo[j].x) + self.offset * cos(radians(lasth)) + self.offset_x
-            y = float(positionEgo[j].y) + self.offset * sin(radians(lasth)) + self.offset_y
+            x = float(positionEgo[j].x) + self.offset * math.cos(math.radians(lasth)) + self.offset_x
+            y = float(positionEgo[j].y) + self.offset * math.sin(math.radians(lasth)) + self.offset_y
             z = float(positionEgo[j].z)
 
             if (j > 0) & (float(positionEgo[j].h - lasth) < -6):
-                h = float(positionEgo[j].h) + 2 * pi
+                h = float(positionEgo[j].h) + 2 * math.pi
             elif (j > 0) & (float(positionEgo[j].h - lasth) > 6):
-                h = float(positionEgo[j].h) - 2 * pi
+                h = float(positionEgo[j].h) - 2 * math.pi
             else:
                 h = float(positionEgo[j].h)
             # h = float(positionEgo[n].h)
@@ -205,7 +205,7 @@ class Scenario(ScenarioGenerator):
 
         true_end_time = step_dataEgo[-1]
 
-        for _ in range(ceil(step)):
+        for _ in range(math.ceil(step)):
             step_dataEgo.append(true_end_time + round(_ / step, 2))
             positionEgo1.append(
                 # xosc.WorldPosition(x=positionEgo[-1].x, y=positionEgo[-1].y, z=positionEgo[-1].z, h=positionEgo[-1].h,
@@ -275,9 +275,9 @@ class Scenario(ScenarioGenerator):
                 z = float(rowNew[j].z)
 
                 # if (j > 0) & (float(rowNew[j].h - lasth) < -6):
-                #     h = float(rowNew[j].h) + 2 * pi
+                #     h = float(rowNew[j].h) + 2 * math.pi
                 # elif (j > 0) & (float(rowNew[j].h - lasth) > 6):
-                #     h = float(rowNew[j].h) - 2 * pi
+                #     h = float(rowNew[j].h) - 2 * math.pi
                 # else:
                 #     h = float(rowNew[j].h)
                 #
@@ -448,7 +448,7 @@ class Task_c:
             if len(obj) > 15:
                 obsL.append(read_gps(obj, time))
 
-        sceperiod = ceil((time[-1] - time[0]) / 1000)
+        sceperiod = math.ceil((time[-1] - time[0]) / 1000)
         ped_flag = True
 
         s = Scenario(gps, obsL, time, sceperiod, ped_flag, abs_path, 0, 0)
@@ -620,10 +620,3 @@ if __name__ == "__main__":
 
     # 生成场景
     a.batchRun(rootPath)
-
-    # # 生成视频
-    # a.GenerateVideo()
-    # os.chdir(os.path.join(os.path.expanduser('~'), 'Desktop/VTDVideoGenerator/VTDController'))
-    # print(os.getcwd())
-    # command = './VTDController config/default.ini'
-    # os.system(command=command)
