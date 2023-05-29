@@ -1,22 +1,13 @@
-import math
 import os
-
-import warnings
 
 import xml.etree.ElementTree as ET
 
+from math import sqrt, pow, ceil, pi, atan2, radians, sin, cos
 from scenariogeneration import ScenarioGenerator
 from scenariogeneration import xodr
 from scenariogeneration import xosc
 
 from sc_tool import read_gps, smooth_data, read_obs
-
-warnings.filterwarnings("ignore")
-VtdRoot = '/home/tang/VIRES/VTD.2021.3'
-ROD = VtdRoot + "/Runtime/Tools/ROD/ROD "
-LicenceAddress = '-s 27500@192.168.11.179'
-RodProject = " --project " + VtdRoot + "/Runtime/Tools/ROD/DefaultProject/DefaultProject.rpj"
-SourceOsgbPath = VtdRoot + "/Runtime/Tools/ROD/DefaultProject/Database"
 
 
 class ScenarioModel(object):
@@ -75,7 +66,7 @@ class Scenario(ScenarioGenerator):
             nexty = 0.000001 if abs(positionEgo[i + 1].y) < 0.000001 else positionEgo[i + 1].y
             h = float(positionEgo[i].h)
 
-            planview.add_fixed_geometry(xodr.Line(math.sqrt(math.pow(nextx - x, 2) + math.pow(nexty - y, 2))), x, y, h)
+            planview.add_fixed_geometry(xodr.Line(sqrt(pow(nextx - x, 2) + pow(nexty - y, 2))), x, y, h)
 
         planview.add_fixed_geometry(xodr.Line(100), nextx, nexty, h)
         # create two different roadmarkings
@@ -101,7 +92,7 @@ class Scenario(ScenarioGenerator):
         return odr
 
     def getH(self, point1, point2):
-        h = math.atan2((point2.y - point1.y), (point2.x - point1.x))
+        h = atan2((point2.y - point1.y), (point2.x - point1.x))
         return h
 
     def scenario(self, **kwargs):
@@ -193,15 +184,15 @@ class Scenario(ScenarioGenerator):
                 time = round(((self.gpsTime[j] - self.gpsTime[0]) / 1000), 2)
                 # time = round(((self.gpsTime[j] - self.gpsTime[0]) / 1000000000), 2)
 
-            x = float(positionEgo[j].x) + self.offset * math.cos(math.radians(lasth)) + self.offset_x
-            y = float(positionEgo[j].y) + self.offset * math.sin(math.radians(lasth)) + self.offset_y
+            x = float(positionEgo[j].x) + self.offset * cos(radians(lasth)) + self.offset_x
+            y = float(positionEgo[j].y) + self.offset * sin(radians(lasth)) + self.offset_y
             # z = float(positionEgo[j].z)
             z = 0
 
             if (j > 0) & (float(positionEgo[j].h - lasth) < -6):
-                h = float(positionEgo[j].h) + 2 * math.pi
+                h = float(positionEgo[j].h) + 2 * pi
             elif (j > 0) & (float(positionEgo[j].h - lasth) > 6):
-                h = float(positionEgo[j].h) - 2 * math.pi
+                h = float(positionEgo[j].h) - 2 * pi
             else:
                 h = float(positionEgo[j].h)
             # h = float(positionEgo[n].h)
@@ -219,7 +210,7 @@ class Scenario(ScenarioGenerator):
 
         true_end_time = step_dataEgo[-1]
 
-        for _ in range(math.ceil(step)):
+        for _ in range(ceil(step)):
             step_dataEgo.append(true_end_time + round(_ / step, 2))
             positionEgo1.append(
                 # xosc.WorldPosition(x=positionEgo[-1].x, y=positionEgo[-1].y, z=positionEgo[-1].z, h=positionEgo[-1].h,
@@ -288,9 +279,9 @@ class Scenario(ScenarioGenerator):
                 z = float(rowNew[j].z)
 
                 # if (j > 0) & (float(rowNew[j].h - lasth) < -6):
-                #     h = float(rowNew[j].h) + 2 * math.pi
+                #     h = float(rowNew[j].h) + 2 * pi
                 # elif (j > 0) & (float(rowNew[j].h - lasth) > 6):
-                #     h = float(rowNew[j].h) - 2 * math.pi
+                #     h = float(rowNew[j].h) - 2 * pi
                 # else:
                 #     h = float(rowNew[j].h)
                 #
@@ -461,7 +452,7 @@ class Task:
         for obj in obsList:
             obsL.append(read_obs(obj, time))
 
-        sceperiod = math.ceil((time[-1] - time[0]) / 1000)
+        sceperiod = ceil((time[-1] - time[0]) / 1000)
         ped_flag = True
         offset_x = 0
         offset_y = 0
@@ -633,12 +624,3 @@ if __name__ == "__main__":
 
     # 生成场景
     a.batchRun(rootPath)
-
-    # xodr_path = '/home/tang/road_model/Xodr/jiuzhonglu_0308_1.xodr'
-    # a.generate_osgb(rootPath, xodr_path)
-
-    # # 生成视频
-    # os.chdir(os.path.join(os.path.expanduser('~'), 'Desktop/VTDVideoGenerator/VTDController'))
-    # print(os.getcwd())
-    # command = './VTDController config/default.ini'
-    # os.system(command=command)
