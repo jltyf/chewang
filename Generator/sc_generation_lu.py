@@ -12,7 +12,7 @@ from scenariogeneration import ScenarioGenerator
 from scenariogeneration import xodr
 from scenariogeneration import xosc
 
-from sc_tool_lu import read_gps, smooth_data
+from sc_tool import read_gps_lu, smooth_data_lu
 
 warnings.filterwarnings("ignore")
 
@@ -446,12 +446,12 @@ class Task_lu:
         parsed_json = json.loads(file_contents, encoding='utf-8')
         target_number = parsed_json['number']
         target_area = parsed_json['area']
-        results = smooth_data(pos_path, target_number, target_area, offset_list)
+        results = smooth_data_lu(pos_path, target_number, target_area, offset_list)
         gps, obs_list, time, init_speed = results[0], results[1], results[2], results[3]
         obsL = []
         for obj in obs_list:
             if len(obj) > 10:
-                obsL.append(read_gps(obj, time))
+                obsL.append(read_gps_lu(obj, time))
 
         sceperiod = math.ceil((time[-1] - time[0]) / 1000)
         ped_flag = True
@@ -483,7 +483,7 @@ class Task_lu:
         parsed_json = json.loads(file_contents, encoding='utf-8')
         target_number = parsed_json['number']
         target_area = parsed_json['area']
-        results = smooth_data(pos_path, target_number, target_area, offset_list)
+        results = smooth_data_lu(pos_path, target_number, target_area, offset_list)
         if results == 401:
             textBrowser.append(f'场景片段{abs_path}未找到自动驾驶车辆')
             QApplication.processEvents()
@@ -495,7 +495,7 @@ class Task_lu:
         obsL = []
         for obj in obs_list:
             if len(obj) > 10:
-                obsL.append(read_gps(obj, time))
+                obsL.append(read_gps_lu(obj, time))
 
         sceperiod = math.ceil((time[-1] - time[0]) / 1000)
         ped_flag = True

@@ -7,7 +7,7 @@ from scenariogeneration import ScenarioGenerator
 from scenariogeneration import xodr
 from scenariogeneration import xosc
 
-from sc_tool_c import smooth_data, read_gps
+from sc_tool import smooth_data_c, read_gps_c
 
 
 class ScenarioModel(object):
@@ -441,12 +441,12 @@ class Task_c:
         obs_path = os.path.join(abs_path, 'obs.csv')  # 用来筛选场景中不需要的他车
 
         # gps, obs_list, time = smooth_data_raw_c(pos_path, obs_path)
-        gps, obs_list, time = smooth_data(pos_path, obs_path)
+        gps, obs_list, time = smooth_data_c(pos_path, obs_path)
 
         obsL = []
         for obj in obs_list:
             if len(obj) > 15:
-                obsL.append(read_gps(obj, time))
+                obsL.append(read_gps_c(obj, time))
 
         sceperiod = math.ceil((time[-1] - time[0]) / 1000)
         ped_flag = True
