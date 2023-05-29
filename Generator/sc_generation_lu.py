@@ -1,11 +1,11 @@
-import json
-import math
 import os
-import traceback
-import warnings
 
 import xml.etree.ElementTree as ET
+from warnings import filterwarnings
 from datetime import datetime
+from traceback import format_exc
+from json import dump, loads
+from math import sqrt, pow, ceil, pi, atan2
 
 from PyQt5.QtWidgets import QApplication
 from scenariogeneration import ScenarioGenerator
@@ -14,7 +14,7 @@ from scenariogeneration import xosc
 
 from sc_tool_lu import read_gps, smooth_data
 
-warnings.filterwarnings("ignore")
+filterwarnings("ignore")
 
 
 def generate_osgb(root_path, file):
@@ -125,7 +125,7 @@ class Scenario(ScenarioGenerator):
             nexty = 0.000001 if abs(positionEgo[i + 1].y) < 0.000001 else positionEgo[i + 1].y
             h = float(positionEgo[i].h)
 
-            planview.add_fixed_geometry(xodr.Line(math.sqrt(math.pow(nextx - x, 2) + math.pow(nexty - y, 2))), x, y, h)
+            planview.add_fixed_geometry(xodr.Line(sqrt(pow(nextx - x, 2) + pow(nexty - y, 2))), x, y, h)
 
         planview.add_fixed_geometry(xodr.Line(100), nextx, nexty, h)
         # create two different roadmarkings
@@ -151,7 +151,7 @@ class Scenario(ScenarioGenerator):
         return odr
 
     def getH(self, point1, point2):
-        h = math.atan2((point2.y - point1.y), (point2.x - point1.x))
+        h = atan2((point2.y - point1.y), (point2.x - point1.x))
         return h
 
     def scenario(self, **kwargs):
@@ -205,9 +205,9 @@ class Scenario(ScenarioGenerator):
             z = float(positionEgo[j].z)
 
             if (j > 0) & (float(positionEgo[j].h - lasth) < -6):
-                h = float(positionEgo[j].h) + 2 * math.pi
+                h = float(positionEgo[j].h) + 2 * pi
             elif (j > 0) & (float(positionEgo[j].h - lasth) > 6):
-                h = float(positionEgo[j].h) - 2 * math.pi
+                h = float(positionEgo[j].h) - 2 * pi
             else:
                 h = float(positionEgo[j].h)
             if h == 0:
@@ -219,7 +219,7 @@ class Scenario(ScenarioGenerator):
 
         true_end_time = step_dataEgo[-1]
 
-        for _ in range(math.ceil(step)):
+        for _ in range(ceil(step)):
             step_dataEgo.append(true_end_time + round(_ / step, 2))
             positionEgo1.append(
                 xosc.WorldPosition(x=positionEgo[-1].x, y=positionEgo[-1].y, h=positionEgo[-1].h,
@@ -443,7 +443,7 @@ class Task_lu:
                 os.makedirs(output)
         with open(information_path, encoding='utf-8') as f:
             file_contents = f.read()
-        parsed_json = json.loads(file_contents, encoding='utf-8')
+        parsed_json = loads(file_contents, encoding='utf-8')
         target_number = parsed_json['number']
         target_area = parsed_json['area']
         results = smooth_data(pos_path, target_number, target_area, offset_list)
@@ -453,7 +453,7 @@ class Task_lu:
             if len(obj) > 10:
                 obsL.append(read_gps(obj, time))
 
-        sceperiod = math.ceil((time[-1] - time[0]) / 1000)
+        sceperiod = ceil((time[-1] - time[0]) / 1000)
         ped_flag = True
 
         s = Scenario(gps, obsL, time, sceperiod, ped_flag, abs_path, init_speed)
@@ -480,7 +480,7 @@ class Task_lu:
             if not os.path.exists(output):
                 os.makedirs(output)
 
-        parsed_json = json.loads(file_contents, encoding='utf-8')
+        parsed_json = loads(file_contents, encoding='utf-8')
         target_number = parsed_json['number']
         target_area = parsed_json['area']
         results = smooth_data(pos_path, target_number, target_area, offset_list)
@@ -497,7 +497,7 @@ class Task_lu:
             if len(obj) > 10:
                 obsL.append(read_gps(obj, time))
 
-        sceperiod = math.ceil((time[-1] - time[0]) / 1000)
+        sceperiod = ceil((time[-1] - time[0]) / 1000)
         ped_flag = True
 
         s = Scenario(gps, obsL, time, sceperiod, ped_flag, abs_path, init_speed)
@@ -529,9 +529,9 @@ class Task_lu:
                 QApplication.processEvents()
                 error_count += 1
                 error = {'time': datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3],
-                         'traceback': traceback.format_exc()}
+                         'traceback': format_exc()}
                 with open('error.log', 'a+') as f:
-                    json.dump(error, f, indent=4)
+                    dump(error, f, indent=4)
                     f.write('\n')
             finally:
                 textBrowser.moveCursor(textBrowser.textCursor().End)

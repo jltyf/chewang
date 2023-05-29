@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 import os
 import sys
-import threading
-import time
 
 from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import QApplication
@@ -16,19 +14,19 @@ from MainWindow import Ui_MainWindow
 
 
 class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
-    _instance_lock = threading.Lock()
+    # _instance_lock = threading.Lock()
 
     def __init__(self):
         super(MainWindow, self).__init__()
         self.setupUi(self)
         self.start_button.clicked.connect(self.generate_event)
 
-    def __new__(cls, *args, **kwargs):
-        if not hasattr(MainWindow, "_instance"):
-            with MainWindow._instance_lock:
-                if not hasattr(MainWindow, "_instance"):
-                    MainWindow._instance = QtWidgets.QMainWindow.__new__(cls)
-        return MainWindow._instance
+    # def __new__(cls, *args, **kwargs):
+    #     if not hasattr(MainWindow, "_instance"):
+    #         with MainWindow._instance_lock:
+    #             if not hasattr(MainWindow, "_instance"):
+    #                 MainWindow._instance = QtWidgets.QMainWindow.__new__(cls)
+    #     return MainWindow._instance
 
     def generate_event(self):
         self.change_button('disable')
@@ -69,8 +67,8 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                                             "QPushButton:pressed{padding-top:3px}")
 
     def change_text(self, text):
-        time.sleep(0.5)
         self.textBrowser.setText(text)
+        QApplication.processEvents()
 
     def generate(self, model, input_path, output_path):
         if model == '路端数据还原':
@@ -81,7 +79,6 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
             new_task = Task(input_path, "data.csv")
 
         self.change_text('任务正在运行，请耐心等待')
-        QApplication.processEvents()
         # 生成场景
         new_task.batchRun(input_path, output_path, self.textBrowser)
 
