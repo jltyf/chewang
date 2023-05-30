@@ -379,14 +379,14 @@ class Task:
             QApplication.processEvents()
         else:
             gps, obs_list, time_list, init_speed = results[0], results[1], results[2], results[3]
-        obsL = []
+        obs_data = []
         for obj in obs_list:
             if len(obj) > 10:
-                obsL.append(read_gps_lu(obj, time_list))
+                obs_data.append(read_gps_lu(obj, time_list))
 
         period = math.ceil((time_list[-1] - time_list[0]) / 1000)
 
-        s = Scenario(gps, obsL, time_list, period, init_speed, self.work_model)
+        s = Scenario(gps, obs_data, time_list, period, init_speed, self.work_model)
         s.print_permutations()
         filename = output + '/SIMULATION'
         if not os.path.exists:
