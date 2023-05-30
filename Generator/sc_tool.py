@@ -1,4 +1,5 @@
 import math
+import os
 import time
 import datetime
 import numpy as np
@@ -7,6 +8,8 @@ import pandas as pd
 from pyproj import CRS, Transformer
 from scenariogeneration import xosc
 from enum import Enum
+
+import xml.etree.ElementTree as ET
 
 # import matplotlib.pyplot as plt
 
@@ -380,6 +383,108 @@ def get_obj_type(model):
         car_type = [2, 3]
         bicycle_motor_type = [8]
     return ped_type, car_type, bicycle_motor_type
+
+
+def format_two(input_path):
+    """
+    data format:
+    simulation
+        file.xosc
+        file.xodr
+        file.osgb
+    :return:
+    """
+    for root, dirs, files in os.walk(input_path):
+        for file in files:
+            if ".xosc" == file[-5:] or ".xml" == file[-4:]:
+
+                xodrFilePath = ""
+                osgbFilePath = ""
+
+                for odrFile in os.listdir(root):
+                    if ".xodr" == odrFile[-5:]:
+                        xodrFilePath = root + "/" + odrFile
+                        break
+
+                for osgbFile in os.listdir(root):
+                    if ".osgb" == osgbFile[-5:]:
+                        osgbFilePath = root + "/" + osgbFile
+                        break
+
+                path_changer(root + "/" + file, xodrFilePath, osgbFilePath)
+                print("Change success: " + root + "/" + file)
+
+
+def changeCDATA(filepath):
+    f = open(filepath, "r", encoding="UTF-8")
+    txt = f.readline()
+    all_line = []
+    # txt是否为空可以作为判断文件是否到了末尾
+    while txt:
+        txt = txt.replace("&lt;", "<").replace("&gt;", ">").replace("&amp;", "&").replace("&quot;", '"').replace(
+            "&apos;", "'")
+        all_line.append(txt)
+        # 读取文件的下一行
+        txt = f.readline()
+    f.close()
+    f1 = open(filepath, 'w', encoding="UTF-8")
+    for line in all_line:
+        f1.write(line)
+    f1.close()
+
+
+def generate_osgb(root_path, file):
+    VtdRoot = '/home/tang/VIRES/VTD.2021.3'
+    ROD = VtdRoot + "/Runtime/Tools/ROD/ROD "
+    LicenceAddress = '-s 27500@192.168.11.179'
+    RodProject = " --project " + VtdRoot + "/Runtime/Tools/ROD/DefaultProject/DefaultProject.rpj"
+    SourceOsgbPath = VtdRoot + "/Runtime/Tools/ROD/DefaultProject/Database"
+    xodrFilePath = file
+    generate = ROD + LicenceAddress + RodProject + " --xodr " + xodrFilePath + " -G"
+    os.system(generate)
+
+    # move osgb file
+    sourceOsgbFileName = file[:-4] + "opt.osgb"
+    sourceOsgbFilePath = SourceOsgbPath + "/" + sourceOsgbFileName.split('/')[-1]
+    destOsgbFilePath = sourceOsgbFileName.replace('opt.osgb', 'osgb')
+    os.system("mv " + sourceOsgbFilePath + " " + destOsgbFilePath)
+
+    # remove odr file
+    tempXodrFilePath = VtdRoot + "/Runtime/Tools/ROD/DefaultProject/Odr/" + file.split('/')[-1]
+    os.system("rm " + tempXodrFilePath)
+    print("Complete: " + root_path + "/" + file[:-4] + 'osgb')
+
+
+def path_changer(xosc_path, xodr_path, osgb_path):
+    """
+    provided by Dongpeng Ding
+    :param xosc_path:
+    :param xodr_path:
+    :param osgb_path:
+    :return:
+    """
+    tree = ET.parse(xosc_path)
+    treeRoot = tree.getroot()
+
+    # for OpenScenario v0.9, v1.0
+    for RoadNetwork in treeRoot.findall('RoadNetwork'):
+
+        for Logics in RoadNetwork.findall('LogicFile'):
+            Logics.attrib['filepath'] = xodr_path
+        for SceneGraph in RoadNetwork.findall('SceneGraphFile'):
+            SceneGraph.attrib['filepath'] = osgb_path
+
+        for Logics in RoadNetwork.findall('Logics'):
+            Logics.attrib['filepath'] = xodr_path
+        for SceneGraph in RoadNetwork.findall('SceneGraph'):
+            SceneGraph.attrib['filepath'] = osgb_path
+
+    # for VTD xml
+    for Layout in treeRoot.findall('Layout'):
+        Layout.attrib['File'] = xodr_path
+        Layout.attrib['Database'] = osgb_path
+
+    tree.write(xosc_path, xml_declaration=True)
 
 
 # def speed2heading(speed_dict):

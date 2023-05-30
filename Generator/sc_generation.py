@@ -12,63 +12,9 @@ from scenariogeneration import ScenarioGenerator
 from scenariogeneration import xodr
 from scenariogeneration import xosc
 
-from sc_tool import read_gps_lu, smooth_data_lu, get_obj_type, Work_Model
+from sc_tool import read_gps_lu, smooth_data_lu, get_obj_type, Work_Model, changeCDATA, generate_osgb, format_two
 
 warnings.filterwarnings("ignore")
-
-
-def generate_osgb(root_path, file):
-    VtdRoot = '/home/tang/VIRES/VTD.2021.3'
-    ROD = VtdRoot + "/Runtime/Tools/ROD/ROD "
-    LicenceAddress = '-s 27500@192.168.11.179'
-    RodProject = " --project " + VtdRoot + "/Runtime/Tools/ROD/DefaultProject/DefaultProject.rpj"
-    SourceOsgbPath = VtdRoot + "/Runtime/Tools/ROD/DefaultProject/Database"
-    xodrFilePath = file
-    generate = ROD + LicenceAddress + RodProject + " --xodr " + xodrFilePath + " -G"
-    os.system(generate)
-
-    # move osgb file
-    sourceOsgbFileName = file[:-4] + "opt.osgb"
-    sourceOsgbFilePath = SourceOsgbPath + "/" + sourceOsgbFileName.split('/')[-1]
-    destOsgbFilePath = sourceOsgbFileName.replace('opt.osgb', 'osgb')
-    os.system("mv " + sourceOsgbFilePath + " " + destOsgbFilePath)
-
-    # remove odr file
-    tempXodrFilePath = VtdRoot + "/Runtime/Tools/ROD/DefaultProject/Odr/" + file.split('/')[-1]
-    os.system("rm " + tempXodrFilePath)
-    print("Complete: " + root_path + "/" + file[:-4] + 'osgb')
-
-
-def path_changer(xosc_path, xodr_path, osgb_path):
-    """
-    provided by Dongpeng Ding
-    :param xosc_path:
-    :param xodr_path:
-    :param osgb_path:
-    :return:
-    """
-    tree = ET.parse(xosc_path)
-    treeRoot = tree.getroot()
-
-    # for OpenScenario v0.9, v1.0
-    for RoadNetwork in treeRoot.findall('RoadNetwork'):
-
-        for Logics in RoadNetwork.findall('LogicFile'):
-            Logics.attrib['filepath'] = xodr_path
-        for SceneGraph in RoadNetwork.findall('SceneGraphFile'):
-            SceneGraph.attrib['filepath'] = osgb_path
-
-        for Logics in RoadNetwork.findall('Logics'):
-            Logics.attrib['filepath'] = xodr_path
-        for SceneGraph in RoadNetwork.findall('SceneGraph'):
-            SceneGraph.attrib['filepath'] = osgb_path
-
-    # for VTD xml
-    for Layout in treeRoot.findall('Layout'):
-        Layout.attrib['File'] = xodr_path
-        Layout.attrib['Database'] = osgb_path
-
-    tree.write(xosc_path, xml_declaration=True)
 
 
 class ScenarioModel(object):
@@ -97,61 +43,58 @@ class ScenarioModel(object):
 
 
 class Scenario(ScenarioGenerator):
-    def __init__(self, gps, obs, gpsTime, sceperiod, init_speed, work_model):
+    def __init__(self, gps, obs, gps_time, period, init_speed, work_model):
         ScenarioGenerator.__init__(self)
         self.gps = gps
         self.obs = obs
-        self.gpsTime = gpsTime
+        self.gpsTime = gps_time
         self.ObjectID = 0
         self.egoSpeed = 5  # 自车初始速度，目前无用
-        self.sceperiod = sceperiod  # 场景持续的时间
+        self.period = period  # 场景持续的时间
         self.weather = xosc.PrecipitationType.dry  # 默认是晴天
         self.visual_fog_range = 20000  # 正常的能见度，没有雾
         self.time = (True, 2019, 12, 19, 12, 0, 0)  # 用于判断白天还是黑夜
-        self.cloudstate = xosc.CloudState.free
         self.object_dict = {}
         self.init_speed = init_speed
         self.work_model = work_model
 
     def road(self):
         positionEgo = self.gps
-        planview = xodr.PlanView()
-
+        plan_view = xodr.PlanView()
+        next_x = 0.000001
+        next_y = 0.000001
+        h = math.radians(90)
         for i in range(len(positionEgo) - 1):
             x = 0.000001 if abs(positionEgo[i].x) < 0.000001 else positionEgo[i].x
             y = 0.000001 if abs(positionEgo[i].y) < 0.000001 else positionEgo[i].y
-            nextx = 0.000001 if abs(positionEgo[i + 1].x) < 0.000001 else positionEgo[i + 1].x
-            nexty = 0.000001 if abs(positionEgo[i + 1].y) < 0.000001 else positionEgo[i + 1].y
+            next_x = 0.000001 if abs(positionEgo[i + 1].x) < 0.000001 else positionEgo[i + 1].x
+            next_y = 0.000001 if abs(positionEgo[i + 1].y) < 0.000001 else positionEgo[i + 1].y
             h = float(positionEgo[i].h)
 
-            planview.add_fixed_geometry(xodr.Line(math.sqrt(pow(nextx - x, 2) + math.pow(nexty - y, 2))), x, y, h)
+            plan_view.add_fixed_geometry(xodr.Line(math.sqrt(pow(next_x - x, 2) + math.pow(next_y - y, 2))), x, y, h)
 
-        planview.add_fixed_geometry(xodr.Line(100), nextx, nexty, h)
-        # create two different roadmarkings
+        plan_view.add_fixed_geometry(xodr.Line(100), next_x, next_y, h)
+        # create two different road markings
         rm_solid = xodr.RoadMark(xodr.RoadMarkType.solid, 0.2)
         rm_dashed = xodr.RoadMark(xodr.RoadMarkType.broken, 0.2)
 
         # create simple lanes
         lanes = xodr.Lanes()
-        lanesection1 = xodr.LaneSection(0, xodr.standard_lane(offset=1.75, rm=rm_dashed))
-        lanesection1.add_left_lane(xodr.standard_lane(offset=3.5, rm=rm_dashed))
-        lanesection1.add_left_lane(xodr.standard_lane(offset=3.5, rm=rm_dashed))
-        lanesection1.add_left_lane(xodr.standard_lane(offset=3.5, rm=rm_solid))
-        lanesection1.add_right_lane(xodr.standard_lane(offset=3.5, rm=rm_dashed))
-        lanesection1.add_right_lane(xodr.standard_lane(offset=3.5, rm=rm_dashed))
-        lanesection1.add_right_lane(xodr.standard_lane(offset=3.5, rm=rm_solid))
-        lanes.add_lanesection(lanesection1)
+        lane_section1 = xodr.LaneSection(0, xodr.standard_lane(offset=1.75, rm=rm_dashed))
+        lane_section1.add_left_lane(xodr.standard_lane(offset=3.5, rm=rm_dashed))
+        lane_section1.add_left_lane(xodr.standard_lane(offset=3.5, rm=rm_dashed))
+        lane_section1.add_left_lane(xodr.standard_lane(offset=3.5, rm=rm_solid))
+        lane_section1.add_right_lane(xodr.standard_lane(offset=3.5, rm=rm_dashed))
+        lane_section1.add_right_lane(xodr.standard_lane(offset=3.5, rm=rm_dashed))
+        lane_section1.add_right_lane(xodr.standard_lane(offset=3.5, rm=rm_solid))
+        lanes.add_lanesection(lane_section1)
         lanes.add_laneoffset(xodr.LaneOffset(a=1.75))
 
-        road = xodr.Road(0, planview, lanes)
+        road = xodr.Road(0, plan_view, lanes)
         odr = xodr.OpenDrive('myroad')
         odr.add_road(road)
         odr.adjust_roads_and_lanes()
         return odr
-
-    def getH(self, point1, point2):
-        h = math.atan2((point2.y - point1.y), (point2.x - point1.x))
-        return h
 
     def scenario(self, **kwargs):
         road = xosc.RoadNetwork(self.road_file, scenegraph="/simulation0.osgb")
@@ -183,7 +126,7 @@ class Scenario(ScenarioGenerator):
         egospeed = xosc.AbsoluteSpeedAction(self.init_speed, step_time)
 
         # init
-        step = len(positionEgo) / self.sceperiod
+        step = len(positionEgo) / self.period
         step_dataEgo = []
         positionEgo1 = []
         init.add_init_action(scenario_model.ego_name, xosc.TeleportAction(
@@ -193,7 +136,7 @@ class Scenario(ScenarioGenerator):
 
         # ego car
         trajectory = xosc.Trajectory('oscTrajectory0', False)
-        lasth = float(positionEgo[0].h)
+        last_h = float(positionEgo[0].h)
         for j in range(len(positionEgo)):
             if j == 0:
                 time = 0
@@ -204,9 +147,9 @@ class Scenario(ScenarioGenerator):
             y = float(positionEgo[j].y)
             z = float(positionEgo[j].z)
 
-            if (j > 0) & (float(positionEgo[j].h - lasth) < -6):
+            if (j > 0) & (float(positionEgo[j].h - last_h) < -6):
                 h = float(positionEgo[j].h) + 2 * math.pi
-            elif (j > 0) & (float(positionEgo[j].h - lasth) > 6):
+            elif (j > 0) & (float(positionEgo[j].h - last_h) > 6):
                 h = float(positionEgo[j].h) - 2 * math.pi
             else:
                 h = float(positionEgo[j].h)
@@ -215,7 +158,7 @@ class Scenario(ScenarioGenerator):
             step_dataEgo.append(time)
             # positionEgo1.append(xosc.WorldPosition(x=x, y=y, z=z, h=h, p=0, r=0))
             positionEgo1.append(xosc.WorldPosition(x=x, y=y, z=0, h=h, p=0, r=0))
-            lasth = h
+            last_h = h
 
         true_end_time = step_dataEgo[-1]
 
@@ -227,26 +170,26 @@ class Scenario(ScenarioGenerator):
         polyline = xosc.Polyline(step_dataEgo, positionEgo1)
         trajectory.add_shape(polyline)
 
-        speedaction = xosc.FollowTrajectoryAction(trajectory, xosc.FollowMode.position, xosc.ReferenceContext.absolute,
-                                                  1, 0)
+        speed_action = xosc.FollowTrajectoryAction(trajectory, xosc.FollowMode.position, xosc.ReferenceContext.absolute,
+                                                   1, 0)
         trigger = xosc.ValueTrigger(name='drive_start_trigger', delay=0, conditionedge=xosc.ConditionEdge.rising,
                                     valuecondition=xosc.SimulationTimeCondition(value=0, rule=xosc.Rule.greaterThan))
 
         event = xosc.Event('Event1', xosc.Priority.overwrite)
         event.add_trigger(trigger)
-        event.add_action('newspeed', speedaction)
+        event.add_action('new_speed', speed_action)
         man = xosc.Maneuver('my maneuver')
         man.add_event(event)
 
-        mangr = xosc.ManeuverGroup('mangroup', selecttriggeringentities=True)
-        mangr.add_actor('Ego')
-        mangr.add_maneuver(man)
+        man_group = xosc.ManeuverGroup('man_group', selecttriggeringentities=True)
+        man_group.add_actor('Ego')
+        man_group.add_maneuver(man)
 
         trigger0 = xosc.Trigger('start')
         act = xosc.Act('Act1', trigger0)
-        act.add_maneuver_group(mangr)
+        act.add_maneuver_group(man_group)
 
-        story1 = xosc.Story('mystory_ego')
+        story1 = xosc.Story('story_ego')
         story1.add_act(act)
 
         sb = xosc.StoryBoard(init, stoptrigger=xosc.ValueTrigger('stop_trigger', 0, xosc.ConditionEdge.none,
@@ -292,7 +235,7 @@ class Scenario(ScenarioGenerator):
             polylineM = xosc.Polyline(step_dataM, positionM)
             trajectoryM.add_shape(polylineM)
 
-            speedaction2 = xosc.FollowTrajectoryAction(trajectoryM, xosc.FollowMode.position,
+            speed_action = xosc.FollowTrajectoryAction(trajectoryM, xosc.FollowMode.position,
                                                        xosc.ReferenceContext.absolute, 1, 0)
 
             event2 = xosc.Event('Event1', xosc.Priority.overwrite)
@@ -301,12 +244,12 @@ class Scenario(ScenarioGenerator):
             event2.add_trigger(trigger2)
 
             if row[0].ObjectType == 0:
-                pedaction = xosc.FollowTrajectoryAction(trajectoryM, xosc.FollowMode.position,
-                                                        xosc.ReferenceContext.absolute, 1, 0)
-                event2.add_action('newspeed', pedaction)
+                ped_action = xosc.FollowTrajectoryAction(trajectoryM, xosc.FollowMode.position,
+                                                         xosc.ReferenceContext.absolute, 1, 0)
+                event2.add_action('new_speed', ped_action)
 
             else:
-                event2.add_action('newspeed', speedaction2)
+                event2.add_action('new_speed', speed_action)
 
             man = xosc.Maneuver('my maneuver')
             man.add_event(event2)
@@ -327,27 +270,29 @@ class Scenario(ScenarioGenerator):
                 action3 = xosc.CustomCommandAction(0, 0, 0, 0, 1, 0, 0)
                 speed = 3
                 motion = 'walk'
-                text = f'<Traffic>\n     <ActionMotion actor="{name}" move="{motion}" speed="{speed}" force="false" rate="0" delayTime="0.0" activateOnExit="false"/>\n</Traffic>'
-                newnode = ET.Element("CustomCommandAction")
-                newnode.attrib = {'type': 'scp'}
-                newnode.text = f"<![CDATA[\n{text}]\n]>"
-                action3.add_element(newnode)
-                event3.add_action('newspeed', action3)
+                text = f'<Traffic>\n     <ActionMotion actor="{name}" move="{motion}" speed="{speed}" force="false" ' \
+                       f'rate="0" delayTime="0.0" activateOnExit="false"/>\n</Traffic>'
+                new_node = ET.Element("CustomCommandAction")
+                new_node.attrib = {'type': 'scp'}
+                new_node.text = f"<![CDATA[\n{text}]\n]>"
+                action3.add_element(new_node)
+                event3.add_action('new_speed', action3)
                 man.add_event(event3)
 
-            mangr2 = xosc.ManeuverGroup('mangroup', selecttriggeringentities=True)
-            mangr2.add_actor(name)
-            mangr2.add_maneuver(man)
+            man_group2 = xosc.ManeuverGroup('man_group2', selecttriggeringentities=True)
+            man_group2.add_actor(name)
+            man_group2.add_maneuver(man)
 
             act2 = xosc.Act('Act1', trigger0)
-            act2.add_maneuver_group(mangr2)
+            act2.add_maneuver_group(man_group2)
 
-            story2 = xosc.Story('mystory_' + name)
+            story2 = xosc.Story('story_obj' + name)
             story2.add_act(act2)
 
             sb.add_story(story2)
-        paramet = xosc.ParameterDeclarations()
-        sce = xosc.Scenario('my scenario', 'Maggie', paramet, scenario_model.entities, sb, road, scenario_model.catalog)
+        parameter = xosc.ParameterDeclarations()
+        sce = xosc.Scenario('my scenario', 'Maggie', parameter, scenario_model.entities, sb, road,
+                            scenario_model.catalog)
         return sce
 
 
@@ -358,79 +303,19 @@ class Task:
         self.keyFileName = keyFileName
         self.work_model = work_model
 
-    def getFile(self, path, keyFileName):
-        '''
-        获得可以进行轨迹提取的所有片段文件夹路径
-
-        Parameters
-        ----------
-        path : TYPE
-            DESCRIPTION.
-
-        Returns
-        -------
-        FileList : TYPE
-            可以进行轨迹提取的所有片段文件夹路径.
-
-        '''
+    def getFile(self, path, file_suffix):
         files = os.listdir(path)  # 得到文件夹下的所有文件，包含文件夹名称
 
         FileList = []
-        if keyFileName not in files:
+        if file_suffix not in files:
             for name in files:
                 if os.path.isdir(path + '/' + name):
-                    FileList.extend(self.getFile(path + '/' + name, keyFileName))  # 回调函数，对所有子文件夹进行搜索
+                    FileList.extend(self.getFile(path + '/' + name, file_suffix))  # 回调函数，对所有子文件夹进行搜索
         else:
             FileList.append(path)
         FileList = list(set(FileList))
 
         return FileList
-
-    def format_two(self, input_path):
-        """
-        data format:
-        simulation
-            file.xosc
-            file.xodr
-            file.osgb
-        :return:
-        """
-        for root, dirs, files in os.walk(input_path):
-            for file in files:
-                if ".xosc" == file[-5:] or ".xml" == file[-4:]:
-
-                    xodrFilePath = ""
-                    osgbFilePath = ""
-
-                    for odrFile in os.listdir(root):
-                        if ".xodr" == odrFile[-5:]:
-                            xodrFilePath = root + "/" + odrFile
-                            break
-
-                    for osgbFile in os.listdir(root):
-                        if ".osgb" == osgbFile[-5:]:
-                            osgbFilePath = root + "/" + osgbFile
-                            break
-
-                    path_changer(root + "/" + file, xodrFilePath, osgbFilePath)
-                    print("Change success: " + root + "/" + file)
-
-    def changeCDATA(self, filepath):
-        f = open(filepath, "r", encoding="UTF-8")
-        txt = f.readline()
-        all_line = []
-        # txt是否为空可以作为判断文件是否到了末尾
-        while txt:
-            txt = txt.replace("&lt;", "<").replace("&gt;", ">").replace("&amp;", "&").replace("&quot;", '"').replace(
-                "&apos;", "'")
-            all_line.append(txt)
-            # 读取文件的下一行
-            txt = f.readline()
-        f.close()
-        f1 = open(filepath, 'w', encoding="UTF-8")
-        for line in all_line:
-            f1.write(line)
-        f1.close()
 
     def generateScenarios_test(self, abs_path, output):
         pos_path = os.path.join(abs_path, 'data.csv')
@@ -454,17 +339,17 @@ class Task:
             if len(obj) > 10:
                 obsL.append(read_gps_lu(obj, time))
 
-        sceperiod = math.ceil((time[-1] - time[0]) / 1000)
+        period = math.ceil((time[-1] - time[0]) / 1000)
 
-        s = Scenario(gps, obsL, time, sceperiod, init_speed, self.work_model)
+        s = Scenario(gps, obsL, time, period, init_speed, self.work_model)
         s.print_permutations()
         filename = output + '/SIMULATION'
         if not os.path.exists:
             os.makedirs(filename)
         files = s.generate(filename)
         generate_osgb(output_path, files[0][0].replace('xosc', 'xodr'))
-        self.format_two(filename)
-        self.changeCDATA(files[0][0])
+        format_two(filename)
+        changeCDATA(files[0][0])
 
     def generateScenarios(self, abs_path, output, textBrowser=0):
         pos_path = os.path.join(abs_path, 'data.csv')
@@ -483,6 +368,8 @@ class Task:
         parsed_json = json.loads(file_contents, encoding='utf-8')
         target_number = parsed_json['number']
         target_area = parsed_json['area']
+        init_speed = 0
+        time_list, obs_list, gps = list(), list(), list()
         results = smooth_data_lu(pos_path, target_number, target_area, offset_list)
         if results == 401:
             textBrowser.append(f'场景片段{abs_path}未找到自动驾驶车辆')
@@ -491,21 +378,21 @@ class Task:
             textBrowser.append(f'场景片段{abs_path}未找到对应区域')
             QApplication.processEvents()
         else:
-            gps, obs_list, time, init_speed = results[0], results[1], results[2], results[3]
+            gps, obs_list, time_list, init_speed = results[0], results[1], results[2], results[3]
         obsL = []
         for obj in obs_list:
             if len(obj) > 10:
-                obsL.append(read_gps_lu(obj, time))
+                obsL.append(read_gps_lu(obj, time_list))
 
-        sceperiod = math.ceil((time[-1] - time[0]) / 1000)
+        period = math.ceil((time_list[-1] - time_list[0]) / 1000)
 
-        s = Scenario(gps, obsL, time, sceperiod, init_speed, self.work_model)
+        s = Scenario(gps, obsL, time_list, period, init_speed, self.work_model)
         s.print_permutations()
         filename = output + '/SIMULATION'
         if not os.path.exists:
             os.makedirs(filename)
         files = s.generate(filename)
-        self.changeCDATA(files[0][0])
+        changeCDATA(files[0][0])
         textBrowser.append(f'场景{output}还原成功')
         QApplication.processEvents()
 
