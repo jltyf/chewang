@@ -19,7 +19,7 @@ crs_cs = CRS.from_epsg(32650)
 transformer = Transformer.from_crs(crs, crs_cs)
 
 
-class Work_Model(Enum):
+class WorkModel(Enum):
     roadside = 1
     car = 2
     merge = 3
@@ -102,7 +102,7 @@ def read_obs(obsList, time_list):
 def read_gps(path):
     data = pd.read_csv(path)
     position = []
-    time = []
+    time_list = []
     # data = data[['Time', 'East', 'North', 'HeadingAngle']]
     # data = data.loc[data['ID'] == -1, ['Time', 'East', 'North', 'HeadingAngle']].ffill(inplace=True)
     data = data.loc[data['ID'] == -1, ['Time', 'East', 'North', 'HeadingAngle']]
@@ -116,8 +116,8 @@ def read_gps(path):
     for row in data.iterrows():
         position.append(xosc.WorldPosition(x=float(row[1]['East']) - x, y=float(row[1]['North']) - y,
                                            h=math.radians(float(row[1]['HeadingAngle']) + 90)))
-        time.append(float(row[1]['Time']))
-    return position, x, y, time
+        time_list.append(float(row[1]['Time']))
+    return position, x, y, time_list
 
 
 def read_gps_c(obsList, time_list):
@@ -151,11 +151,12 @@ def smooth_data(csvPath, obsPath):
     data = data[data['Type'] != 10]  # 排除非目标物的物体
     data = data.loc[data['ID'] != -1, ['Time', 'ID', 'East', 'North', 'HeadingAngle', 'AbsVel', 'Type']]
 
-    obsdata = pd.read_csv(obsPath)
-    obsdata = obsdata[(obsdata['ObjectPosY'] < 5) & (obsdata['ObjectPosY'] > -5) & (obsdata['ObjectPosX'] > -30) & (
-            obsdata['ObjectPosX'] < 100)]  # 排除车道线范围外且前向距离较远的目标物
-    idlist = obsdata['ObjectID'].tolist()  # 筛选出符合条件的的目标物ID
-    data = data[(data['ID'].isin(idlist))]
+    obs_data = pd.read_csv(obsPath)
+    obs_data = obs_data[
+        (obs_data['ObjectPosY'] < 5) & (obs_data['ObjectPosY'] > -5) & (obs_data['ObjectPosX'] > -30) & (
+                    obs_data['ObjectPosX'] < 100)]  # 排除车道线范围外且前向距离较远的目标物
+    id_list = obs_data['ObjectID'].tolist()  # 筛选出符合条件的的目标物ID
+    data = data[(data['ID'].isin(id_list))]
     for obj_id, obj_data in data.groupby('ID'):
         rating = obj_data['HeadingAngle'] - obj_data['HeadingAngle'].shift(3)
         obj_data['rating'] = rating.abs()
@@ -164,16 +165,16 @@ def smooth_data(csvPath, obsPath):
 
     data = data.reset_index(drop=True)
 
-    obsdata = data.copy()
-    obsdata = obsdata[['Time', 'ID', 'Type', 'East', 'North', 'HeadingAngle']]
-    groups = obsdata.groupby('ID')
-    obslist = []
+    obs_data = data.copy()
+    obs_data = obs_data[['Time', 'ID', 'Type', 'East', 'North', 'HeadingAngle']]
+    groups = obs_data.groupby('ID')
+    obs_list = []
     for key, value in groups:
-        obslist.append(value.values.tolist())
+        obs_list.append(value.values.tolist())
         # if len(value) > 15:
-        #     obslist.append(value.values.tolist())
+        #     obs_list.append(value.values.tolist())
 
-    return obslist
+    return obs_list
 
 
 def smooth_data_lu(pos_path, target_number, target_area, offset_list):
@@ -322,7 +323,7 @@ def smooth_data_c(pos_path, obs_path):
     obs_data['data_time'] = pd.to_datetime(obs_data['time'], unit='ms', origin='1970-01-01 08:00:00')
 
     groups = obs_data.groupby('id')
-    obslist = []
+    obs_list = []
     for obj_id, obs_df in groups:
         if len(obs_df) < 15:
             continue
@@ -355,7 +356,7 @@ def smooth_data_c(pos_path, obs_path):
         # plt.plot(x, y, '.')
         # plt.plot(x, f1(x))
         # plt.show()
-        obslist.append(obs_df.values.tolist())
+        obs_list.append(obs_df.values.tolist())
     gps = pos_data.values.tolist()
     ego_position = list()
     for result in gps:
@@ -366,15 +367,15 @@ def smooth_data_c(pos_path, obs_path):
             ego_position.append(
                 xosc.WorldPosition(x=float(result[5]), y=float(result[6]),
                                    z=float(result[4]), h=math.radians(float(result[3]))))
-    return ego_position, obslist, time_list
+    return ego_position, obs_list, time_list
 
 
 def get_obj_type(model):
-    if model == Work_Model.roadside:
+    if model == WorkModel.roadside:
         ped_type = [0]
         car_type = [2, 7]
         bicycle_motor_type = [1, 3]
-    elif model == Work_Model.car:
+    elif model == WorkModel.car:
         ped_type = [7]
         car_type = [2, 3]
         bicycle_motor_type = [8]
@@ -457,7 +458,6 @@ def generate_osgb(root_path, file):
 
 def path_changer(xosc_path, xodr_path, osgb_path):
     """
-    provided by Dongpeng Ding
     :param xosc_path:
     :param xodr_path:
     :param osgb_path:

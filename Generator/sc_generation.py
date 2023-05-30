@@ -12,7 +12,7 @@ from scenariogeneration import ScenarioGenerator
 from scenariogeneration import xodr
 from scenariogeneration import xosc
 
-from sc_tool import read_gps_lu, smooth_data_lu, get_obj_type, Work_Model, changeCDATA, generate_osgb, format_two
+from sc_tool import read_gps_lu, smooth_data_lu, get_obj_type, WorkModel, changeCDATA, generate_osgb, format_two
 
 warnings.filterwarnings("ignore")
 
@@ -437,7 +437,7 @@ class Task:
 if __name__ == "__main__":
     rootPath = "/home/tang/Documents/chewang/csvdata/"
     output_path = "/home/tang/Documents/chewang/csvdata/0526"
-    a = Task(rootPath, "data.csv", Work_Model.roadside)
+    a = Task(rootPath, "data.csv", WorkModel.roadside)
 
     # 生成场景
     a.batchRun_test(rootPath, output_path)
