@@ -6,6 +6,7 @@ import pandas as pd
 
 from pyproj import CRS, Transformer
 from scenariogeneration import xosc
+from enum import Enum
 
 # import matplotlib.pyplot as plt
 
@@ -13,6 +14,12 @@ crs = CRS.from_epsg(4326)
 
 crs_cs = CRS.from_epsg(32650)
 transformer = Transformer.from_crs(crs, crs_cs)
+
+
+class Work_Model(Enum):
+    roadside = 1
+    car = 2
+    merge = 3
 
 
 class Point(object):
@@ -357,6 +364,22 @@ def smooth_data_c(pos_path, obs_path):
                 xosc.WorldPosition(x=float(result[5]), y=float(result[6]),
                                    z=float(result[4]), h=math.radians(float(result[3]))))
     return ego_position, obslist, time_list
+
+
+def get_obj_type(model):
+    if model == Work_Model.roadside:
+        ped_type = [0]
+        car_type = [2, 7]
+        bicycle_motor_type = [1, 3]
+    elif model == Work_Model.car:
+        ped_type = [7]
+        car_type = [2, 3]
+        bicycle_motor_type = [8]
+    else:
+        ped_type = [7]
+        car_type = [2, 3]
+        bicycle_motor_type = [8]
+    return ped_type, car_type, bicycle_motor_type
 
 
 # def speed2heading(speed_dict):

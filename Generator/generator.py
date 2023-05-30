@@ -5,11 +5,11 @@ import sys
 from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import QApplication
 
+from Generator.sc_tool import Work_Model
+
 sys.path.append('../')
 
 from Generator.sc_generation import Task
-from Generator.sc_generation_c import Task_c
-from Generator.sc_generation_lu import Task_lu
 from MainWindow import Ui_MainWindow
 
 
@@ -72,12 +72,12 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
     def generate(self, model, input_path, output_path):
         if model == '路端数据还原':
-            new_task = Task_lu(input_path, "data.csv")
+            work_model = Work_Model.roadside
         elif model == '车端数据还原':
-            new_task = Task_c(input_path, "data.csv")
+            work_model = Work_Model.car
         else:
-            new_task = Task(input_path, "data.csv")
-
+            work_model = Work_Model.merge
+        new_task = Task(input_path, "data.csv", work_model)
         self.change_text('任务正在运行，请耐心等待')
         # 生成场景
         new_task.batchRun(input_path, output_path, self.textBrowser)
