@@ -119,6 +119,8 @@ class Scenario(ScenarioGenerator):
                 self.object_dict[scenario_model.obj_name + str(obj_count)] = self.obs[i]
                 scenario_model.entities.add_scenario_object(scenario_model.obj_name + str(i), scenario_model.motorcycle,
                                                             scenario_model.cnt2)
+            else:
+                obj_count -= 1
             obj_count += 1
 
         init = xosc.Init()
@@ -333,15 +335,15 @@ class Task:
         target_number = parsed_json['number']
         target_area = parsed_json['area']
         results = smooth_data_lu(pos_path, target_number, target_area, offset_list)
-        gps, obs_list, time, init_speed = results[0], results[1], results[2], results[3]
+        gps, obs_list, time_list, init_speed = results[0], results[1], results[2], results[3]
         obs_data = list()
         for obj in obs_list:
             if len(obj) > 10:
-                obs_data.append(read_gps_lu(obj, time))
+                obs_data.append(read_gps_lu(obj, time_list))
 
-        period = math.ceil((time[-1] - time[0]) / 1000)
+        period = math.ceil((time_list[-1] - time_list[0]) / 1000)
 
-        s = Scenario(gps, obs_data, time, period, init_speed, self.work_model)
+        s = Scenario(gps, obs_data, time_list, period, init_speed, self.work_model)
         s.print_permutations()
         filename = output + '/SIMULATION'
         if not os.path.exists:
