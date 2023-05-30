@@ -91,7 +91,7 @@ class Scenario(ScenarioGenerator):
         lanes.add_laneoffset(xodr.LaneOffset(a=1.75))
 
         road = xodr.Road(0, plan_view, lanes)
-        odr = xodr.OpenDrive('myroad')
+        odr = xodr.OpenDrive('RoadByTrajectory')
         odr.add_road(road)
         odr.adjust_roads_and_lanes()
         return odr
@@ -123,7 +123,7 @@ class Scenario(ScenarioGenerator):
 
         init = xosc.Init()
         step_time = xosc.TransitionDynamics(xosc.DynamicsShapes.step, xosc.DynamicsDimension.time, 1)
-        egospeed = xosc.AbsoluteSpeedAction(self.init_speed, step_time)
+        ego_speed = xosc.AbsoluteSpeedAction(self.init_speed, step_time)
 
         # init
         step = len(positionEgo) / self.period
@@ -132,7 +132,7 @@ class Scenario(ScenarioGenerator):
         init.add_init_action(scenario_model.ego_name, xosc.TeleportAction(
             xosc.WorldPosition(x=positionEgo[0].x, y=positionEgo[0].y, z=positionEgo[0].z, h=positionEgo[0].h, p=0,
                                r=0)))
-        init.add_init_action(scenario_model.ego_name, egospeed)
+        init.add_init_action(scenario_model.ego_name, ego_speed)
 
         # ego car
         trajectory = xosc.Trajectory('oscTrajectory0', False)
@@ -334,14 +334,14 @@ class Task:
         target_area = parsed_json['area']
         results = smooth_data_lu(pos_path, target_number, target_area, offset_list)
         gps, obs_list, time, init_speed = results[0], results[1], results[2], results[3]
-        obsL = []
+        obs_data = list()
         for obj in obs_list:
             if len(obj) > 10:
-                obsL.append(read_gps_lu(obj, time))
+                obs_data.append(read_gps_lu(obj, time))
 
         period = math.ceil((time[-1] - time[0]) / 1000)
 
-        s = Scenario(gps, obsL, time, period, init_speed, self.work_model)
+        s = Scenario(gps, obs_data, time, period, init_speed, self.work_model)
         s.print_permutations()
         filename = output + '/SIMULATION'
         if not os.path.exists:
