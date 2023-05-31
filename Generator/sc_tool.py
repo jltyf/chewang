@@ -58,7 +58,6 @@ def filter_error(data_df):
             diff_data['time'].min() - diff_data['time'].max()) < datetime.timedelta(milliseconds=5000)):
         error_start = data_df[data_df['time'] == diff_data['time'].min()].index[0] - 1
         error_end = data_df[data_df['time'] == diff_data['time'].max()].index[0] + 1
-        # del_time = datetime.timedelta(milliseconds=100)
         error_df = data_df[error_start:error_end]
         _ = error_df[1:-1]
         _['heading'] = np.nan
@@ -171,8 +170,6 @@ def smooth_data(csvPath, obsPath):
     obs_list = []
     for key, value in groups:
         obs_list.append(value.values.tolist())
-        # if len(value) > 15:
-        #     obs_list.append(value.values.tolist())
 
     return obs_list
 
@@ -204,7 +201,7 @@ def smooth_data_lu(pos_path, target_number, target_area, offset_list):
     #             ego_id = obj['uuid'][-8:]
     #         pos_data = pd.concat([pos_data, tmp_df])
 
-    # 新的txt格式数据
+    # 新的csv格式数据
     pos_data = pd.read_csv(pos_path)
     pos_data.rename(
         columns={'时间戳': 'datetime', '感知目标ID': 'id', '感知目标经度': 'longitude', '感知目标纬度': 'latitude',
@@ -248,7 +245,6 @@ def smooth_data_lu(pos_path, target_number, target_area, offset_list):
     # plt_trail(ego_data['x'].values.tolist(), ego_data['y'].values.tolist())
 
     ego_data = filter_error(ego_data)
-    # 设置origin的原因是时区的时差问题
     ego_data['data_time'] = pd.to_datetime(ego_data['time'], unit='ms')
     ego_data = ego_data.resample('100ms', on='data_time').mean().bfill()
 
@@ -504,6 +500,7 @@ def path_changer(xosc_path, xodr_path, osgb_path):
 #
 #
 # def plt_trail(x, y):
+#     # for test
 #     min_x = min(x)
 #     min_y = min(y)
 #     x = (np.array(x) - min_x).tolist()
