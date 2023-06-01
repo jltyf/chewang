@@ -153,7 +153,7 @@ def smooth_data(csvPath, obsPath):
     obs_data = pd.read_csv(obsPath)
     obs_data = obs_data[
         (obs_data['ObjectPosY'] < 5) & (obs_data['ObjectPosY'] > -5) & (obs_data['ObjectPosX'] > -30) & (
-                    obs_data['ObjectPosX'] < 100)]  # 排除车道线范围外且前向距离较远的目标物
+                obs_data['ObjectPosX'] < 100)]  # 排除车道线范围外且前向距离较远的目标物
     id_list = obs_data['ObjectID'].tolist()  # 筛选出符合条件的的目标物ID
     data = data[(data['ID'].isin(id_list))]
     for obj_id, obj_data in data.groupby('ID'):
@@ -207,10 +207,7 @@ def smooth_data_lu(pos_path, target_number, target_area, offset_list):
         columns={'时间戳': 'datetime', '感知目标ID': 'id', '感知目标经度': 'longitude', '感知目标纬度': 'latitude',
                  '高程(dm)': 'altitude', '速度(m/s)': 'speed', '航向角(deg)': 'heading', '感知目标类型': 'type'},
         inplace=True)
-    pos_data['datetime'] = pd.to_datetime(pos_data['datetime'])
-    pos_data['time'] = pos_data['datetime'].astype('int64')
-    pos_data['time'] = pd.to_datetime(pos_data['datetime'], unit='s').dt.tz_localize('UTC').dt.tz_convert(
-        'Asia/Shanghai')
+    pos_data['time'] = pd.to_datetime(pos_data['datetime'])
     pos_data = pos_data[['time', 'id', 'type', 'longitude', 'latitude', 'speed', 'heading', 'altitude']]
     pos_data['id'] = pos_data['id'].astype('str')
     pos_data.id = pos_data.id.apply(lambda x: x[-10:])
@@ -229,8 +226,13 @@ def smooth_data_lu(pos_path, target_number, target_area, offset_list):
     elif offset_x == -1 and offset_y == -1:
         return 402
     pos_data = pos_data.reset_index(drop=True)
-    ego_data = pos_data[pos_data['id'] == ego_id].reset_index(drop=True)
+    # ego_data = pos_data[pos_data['id'] == ego_id].reset_index(drop=True)
     obs_data = pos_data[pos_data['id'] != ego_id].reset_index(drop=True)
+    ego_data = pd.read_csv(os.path.join(os.path.dirname(pos_path), 'ego.csv'))
+    ego_data.rename(
+        columns={'时间戳': 'datetime', '经度': 'longitude', '纬度': 'latitude', '高程(dm)': 'altitude', '速度(m/s)': 'speed',
+                 '航向角(deg)': 'heading'}, inplace=True)
+    ego_data['time'] = pd.to_datetime(ego_data['datetime'])
     ego_data['heading'] = ego_data['heading'].astype('float')
     start_time = ego_data['time'].min()
     end_time = ego_data['time'].max()

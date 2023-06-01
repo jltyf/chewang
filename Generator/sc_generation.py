@@ -353,7 +353,7 @@ class Task:
         format_two(filename)
         changeCDATA(files[0][0])
 
-    def generateScenarios(self, abs_path, output, textBrowser=0):
+    def generateScenarios(self, abs_path, output, work_model, textBrowser=0):
         pos_path = os.path.join(abs_path, 'data.csv')
         information_path = os.path.join(abs_path, 'information.json')
         with open(file='offset.txt', encoding='utf8') as f:
@@ -372,23 +372,24 @@ class Task:
         target_area = parsed_json['area']
         init_speed = 0
         time_list, obs_list, gps = list(), list(), list()
-        results = smooth_data_lu(pos_path, target_number, target_area, offset_list)
-        if results == 401:
-            textBrowser.append(f'场景片段{abs_path}未找到自动驾驶车辆')
-            QApplication.processEvents()
-            raise ValueError
-        elif results == 402:
-            textBrowser.append(f'场景片段{abs_path}未找到对应区域')
-            QApplication.processEvents()
-            raise OSError
-        else:
-            gps, obs_list, time_list, init_speed = results[0], results[1], results[2], results[3]
-        obs_data = []
-        for obj in obs_list:
-            if len(obj) > 10:
-                obs_data.append(read_gps_lu(obj, time_list))
+        if work_model == WorkModel.roadside:
+            results = smooth_data_lu(pos_path, target_number, target_area, offset_list)
+            if results == 401:
+                textBrowser.append(f'场景片段{abs_path}未找到自动驾驶车辆')
+                QApplication.processEvents()
+                raise ValueError
+            elif results == 402:
+                textBrowser.append(f'场景片段{abs_path}未找到对应区域')
+                QApplication.processEvents()
+                raise OSError
+            else:
+                gps, obs_list, time_list, init_speed = results[0], results[1], results[2], results[3]
+            obs_data = []
+            for obj in obs_list:
+                if len(obj) > 10:
+                    obs_data.append(read_gps_lu(obj, time_list))
 
-        period = math.ceil((time_list[-1] - time_list[0]) / 1000)
+            period = math.ceil((time_list[-1] - time_list[0]) / 1000)
 
         s = Scenario(gps, obs_data, time_list, period, init_speed, self.work_model)
         s.print_permutations()
@@ -412,7 +413,7 @@ class Task:
         for di, absPath in enumerate(sorted(files)):
             QApplication.processEvents()
             try:
-                self.generateScenarios(absPath, output, textBrowser)
+                self.generateScenarios(absPath, output, self.work_model, textBrowser)
                 correct_count += 1
             except ValueError:
                 textBrowser.append(f'场景{absPath}还原失败')
@@ -460,8 +461,8 @@ class Task:
 
 
 if __name__ == "__main__":
-    rootPath = "/home/tang/Documents/chewang/csvdata/"
-    output_path = "/home/tang/Documents/chewang/csvdata/0526"
+    rootPath = "/home/tang/Documents/chewang/data/0531data/"
+    output_path = "/home/tang/Documents/chewang/data/0531output1"
     a = Task(rootPath, "data.csv", WorkModel.roadside)
 
     # 生成场景
