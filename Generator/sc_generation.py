@@ -376,9 +376,11 @@ class Task:
         if results == 401:
             textBrowser.append(f'场景片段{abs_path}未找到自动驾驶车辆')
             QApplication.processEvents()
+            raise ValueError
         elif results == 402:
             textBrowser.append(f'场景片段{abs_path}未找到对应区域')
             QApplication.processEvents()
+            raise OSError
         else:
             gps, obs_list, time_list, init_speed = results[0], results[1], results[2], results[3]
         obs_data = []
@@ -412,13 +414,36 @@ class Task:
             try:
                 self.generateScenarios(absPath, output, textBrowser)
                 correct_count += 1
+            except ValueError:
+                textBrowser.append(f'场景{absPath}还原失败')
+                QApplication.processEvents()
+                error_count += 1
+                error = {'scenario': absPath,
+                         'time': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3],
+                         'traceback': traceback.format_exc(),
+                         'error': u"未找到自动驾驶车辆"}
+                with open('error.log', 'a+', encoding='utf-8') as f:
+                    json.dump(error, f, indent=4, ensure_ascii=False)
+                    f.write('\n')
+            except OSError:
+                textBrowser.append(f'场景{absPath}还原失败')
+                QApplication.processEvents()
+                error_count += 1
+                error = {'scenario': absPath,
+                         'time': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3],
+                         'traceback': traceback.format_exc(),
+                         'error': u"未找到对应区域"}
+                with open('error.log', 'a+', encoding='utf-8') as f:
+                    json.dump(error, f, indent=4, ensure_ascii=False)
+                    f.write('\n')
             except:
                 textBrowser.append(f'场景{absPath}还原失败')
                 QApplication.processEvents()
                 error_count += 1
-                error = {'time': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3],
+                error = {'scenario': absPath,
+                         'time': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3],
                          'traceback': traceback.format_exc()}
-                with open('error.log', 'a+') as f:
+                with open('error.log', 'a+', encoding='utf-8') as f:
                     json.dump(error, f, indent=4)
                     f.write('\n')
             finally:
