@@ -369,11 +369,11 @@ def smooth_data_c(pos_path, obs_path):
 
 
 def get_obj_type(model):
-    if model == WorkModel.roadside:
+    if model == WorkModel.roadside.value:
         ped_type = [0]
         car_type = [2, 7]
         bicycle_motor_type = [1, 3]
-    elif model == WorkModel.car:
+    elif model == WorkModel.car.value:
         ped_type = [7]
         car_type = [2, 3]
         bicycle_motor_type = [8]

@@ -72,11 +72,11 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
 
     def generate(self, model, input_path, output_path):
         if model == '路端数据还原':
-            work_model = WorkModel.roadside
+            work_model = WorkModel.roadside.value
         elif model == '车端数据还原':
-            work_model = WorkModel.car
+            work_model = WorkModel.car.value
         else:
-            work_model = WorkModel.merge
+            work_model = WorkModel.merge.value
         new_task = Task(input_path, "data.csv", work_model)
         self.change_text('任务正在运行，请耐心等待')
         # 生成场景

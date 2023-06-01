@@ -372,7 +372,8 @@ class Task:
         target_area = parsed_json['area']
         init_speed = 0
         time_list, obs_list, gps = list(), list(), list()
-        if work_model == WorkModel.roadside:
+        obs_data = []
+        if work_model == WorkModel.roadside.value:
             results = smooth_data_lu(pos_path, target_number, target_area, offset_list)
             if results == 401:
                 textBrowser.append(f'场景片段{abs_path}未找到自动驾驶车辆')
@@ -384,12 +385,10 @@ class Task:
                 raise OSError
             else:
                 gps, obs_list, time_list, init_speed = results[0], results[1], results[2], results[3]
-            obs_data = []
+                period = math.ceil((time_list[-1] - time_list[0]) / 1000)
             for obj in obs_list:
                 if len(obj) > 10:
                     obs_data.append(read_gps_lu(obj, time_list))
-
-            period = math.ceil((time_list[-1] - time_list[0]) / 1000)
 
         s = Scenario(gps, obs_data, time_list, period, init_speed, self.work_model)
         s.print_permutations()
@@ -461,9 +460,9 @@ class Task:
 
 
 if __name__ == "__main__":
-    rootPath = "/home/tang/Documents/chewang/data/0531data/"
-    output_path = "/home/tang/Documents/chewang/data/0531output1"
-    a = Task(rootPath, "data.csv", WorkModel.roadside)
+    rootPath = "D:/chewang/data/0531data"
+    output_path = "D:/chewang/data/0531output"
+    a = Task(rootPath, "data.csv", WorkModel.roadside.value)
 
     # 生成场景
     a.batchRun_test(rootPath, output_path)
