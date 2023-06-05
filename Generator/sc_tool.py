@@ -12,6 +12,7 @@ from enum import Enum
 import xml.etree.ElementTree as ET
 
 # import matplotlib.pyplot as plt
+from scipy import signal
 
 crs = CRS.from_epsg(4326)
 
@@ -50,12 +51,31 @@ class ObsPosition(object):
         self.vel = vel
 
 
-def filter_error(data_df):
+def change_heading(data_df, model):
     diff = data_df['heading'] - data_df['heading'].shift(1)
     data_df['diff'] = diff.abs()
     diff_data = data_df[abs(data_df['diff']) >= 25]
-    if len(diff_data) > 1 and (datetime.timedelta(milliseconds=300) < abs(
-            diff_data['time'].min() - diff_data['time'].max()) < datetime.timedelta(milliseconds=5000)):
+    if len(diff_data) == 0:
+        return data_df
+    if model == 1:
+        error_data = data_df[(data_df['diff'] > 25) & (data_df['distance'] < 0.7)]
+        if len(error_data) > 1:
+            error_start = data_df[data_df['time'] == error_data['time'].min()].index[0]
+            error_end = data_df[data_df['time'] == error_data['time'].max()].index[0]
+            error_df = data_df[error_start:error_end]
+            # if
+            right_heading = data_df.loc[error_start - 1, 'heading']
+            error_df['heading'] = right_heading
+            data_df[error_start:error_end] = error_df
+            data_df = change_heading(data_df, model=1)
+        elif len(error_data) == 1:
+            error_start = data_df[data_df['time'] == error_data['time'].min()].index[0]
+            left_df = data_df[error_start:]
+            if left_df[1:]['diff'].mean() < 15:
+                left_df['heading'] = data_df.loc[error_start - 1, 'heading']
+                data_df[error_start:] = left_df
+                data_df = change_heading(data_df, model=1)
+    elif model == 0:
         error_start = data_df[data_df['time'] == diff_data['time'].min()].index[0] - 1
         error_end = data_df[data_df['time'] == diff_data['time'].max()].index[0] + 1
         error_df = data_df[error_start:error_end]
@@ -64,6 +84,33 @@ def filter_error(data_df):
         error_df[1:-1] = _
         error_df = error_df.interpolate()
         data_df[error_start:error_end] = error_df
+    return data_df
+
+
+def filter_error(data_df):
+    if len(data_df) > 27:
+        modified_df = data_df.iloc[0:28, :]
+        b, a = signal.butter(8, 0.2, 'lowpass')
+        filtered_x = signal.filtfilt(b, a, modified_df['x'])
+        filtered_y = signal.filtfilt(b, a, modified_df['y'])
+        modified_df['x'] = filtered_x.tolist()
+
+        modified_df['y'] = filtered_y.tolist()
+        frames = [modified_df, data_df.iloc[28:, :]]
+        data_df = pd.concat(frames)
+
+    data_df['distance'] = ((data_df['x'] - data_df['x'].shift(1)) ** 2 + (
+            data_df['y'] - data_df['y'].shift(1)) ** 2) ** 0.5
+    data_df = data_df.fillna(0)
+    diff = data_df['heading'] - data_df['heading'].shift(1)
+    data_df['diff'] = diff.abs()
+    diff_data = data_df[abs(data_df['diff']) >= 25]
+    if len(diff_data) > 1:
+        if (datetime.timedelta(milliseconds=300) < abs(
+                diff_data['time'].min() - diff_data['time'].max()) < datetime.timedelta(milliseconds=8000)):
+            data_df = change_heading(data_df, model=0)
+        else:
+            data_df = change_heading(data_df, model=1)
 
     if data_df.loc[1, 'time'] - data_df.loc[0, 'time'] > datetime.timedelta(seconds=4):
         data_df = data_df[1:]
@@ -145,7 +192,7 @@ def read_gps_lu(obsList, time_list):
     return position
 
 
-def smooth_data(csvPath, obsPath):
+def load_data(csvPath, obsPath):
     data = pd.read_csv(csvPath)
     data = data[data['Type'] != 10]  # 排除非目标物的物体
     data = data.loc[data['ID'] != -1, ['Time', 'ID', 'East', 'North', 'HeadingAngle', 'AbsVel', 'Type']]
@@ -174,32 +221,8 @@ def smooth_data(csvPath, obsPath):
     return obs_list
 
 
-def smooth_data_lu(pos_path, target_number, target_area, offset_list):
-    ego_id = 0
-
-    # 旧的txt格式数据
-    # pos_data = pd.DataFrame(
-    #     columns=['time', 'longitude', 'latitude', 'heading', 'altitude', 'type', 'id', 'speed'])
-    # with open(file=pos_path, encoding='utf8') as f:
-    #     base_data = f.readlines()
-    # for ms in base_data:
-    #     ms_dict = eval(ms)
-    #     for obj in ms_dict['targets']:
-    #         if (obj['type']) != 2 and (obj['type']) != 0 and (obj['type']) != 7:
-    #             continue
-    #         tmp_df = pd.DataFrame(
-    #             columns=['time', 'longitude', 'latitude', 'heading', 'altitude', 'type', 'id', 'speed'])
-    #         tmp_df.loc[0, 'time'] = ms_dict['timestamp']
-    #         tmp_df.loc[0, 'longitude'] = obj['longitude']
-    #         tmp_df.loc[0, 'latitude'] = obj['latitude']
-    #         tmp_df.loc[0, 'heading'] = obj['heading']
-    #         tmp_df.loc[0, 'altitude'] = obj['elevation']
-    #         tmp_df.loc[0, 'type'] = obj['type']
-    #         tmp_df.loc[0, 'speed'] = obj['speed']
-    #         tmp_df.loc[0, 'id'] = obj['uuid'][-8:]
-    #         if ego_id == 0 and obj['plateNo'] in plate_list and obj['plateNo'] == target_number:
-    #             ego_id = obj['uuid'][-8:]
-    #         pos_data = pd.concat([pos_data, tmp_df])
+def load_data_lu(pos_path, target_number_list, target_area, offset_list):
+    ego_id_list = list()
 
     # 新的csv格式数据
     pos_data = pd.read_csv(pos_path)
@@ -211,8 +234,11 @@ def smooth_data_lu(pos_path, target_number, target_area, offset_list):
     pos_data = pos_data[['time', 'id', 'type', 'longitude', 'latitude', 'speed', 'heading', 'altitude']]
     pos_data['id'] = pos_data['id'].astype('str')
     pos_data.id = pos_data.id.apply(lambda x: x[-10:])
-    if target_number in pos_data['id'].values:
-        ego_id = target_number
+
+    for target_number in target_number_list:
+        if target_number in pos_data['id'].values:
+            ego_id_list = target_number_list
+            break
 
     offset_x, offset_y = (-1, -1)
     for offset in offset_list:
@@ -221,18 +247,22 @@ def smooth_data_lu(pos_path, target_number, target_area, offset_list):
             offset_x = float(offset_value.split(',')[0])
             offset_y = float(offset_value.split(',')[1])
             break
-    if ego_id == 0:
+    if not ego_id_list:
         return 401
     elif offset_x == -1 and offset_y == -1:
         return 402
     pos_data = pos_data.reset_index(drop=True)
-    # ego_data = pos_data[pos_data['id'] == ego_id].reset_index(drop=True)
-    obs_data = pos_data[pos_data['id'] != ego_id].reset_index(drop=True)
+    obs_data = pos_data
+    for ego_id in ego_id_list:
+        obs_data = obs_data[obs_data['id'] != ego_id].reset_index(drop=True)
+
+    # 使用车端上传的数据
     ego_data = pd.read_csv(os.path.join(os.path.dirname(pos_path), 'ego.csv'))
     ego_data.rename(
         columns={'时间戳': 'datetime', '经度': 'longitude', '纬度': 'latitude', '高程(dm)': 'altitude', '速度(m/s)': 'speed',
                  '航向角(deg)': 'heading'}, inplace=True)
     ego_data['time'] = pd.to_datetime(ego_data['datetime'])
+
     ego_data['heading'] = ego_data['heading'].astype('float')
     start_time = ego_data['time'].min()
     end_time = ego_data['time'].max()
@@ -269,6 +299,11 @@ def smooth_data_lu(pos_path, target_number, target_area, offset_list):
         if len(obs_df) < 27:
             continue
         obs_df = obs_df.reset_index(drop=True)
+
+        # for test
+        if obj_id == 3365313461:
+            print(111)
+        print(obj_id)
         obs_df = filter_error(obs_df)
         obs_df = obs_df.resample('100ms', on='data_time').mean()
         obs_df.dropna(inplace=True, axis=0)
@@ -288,7 +323,7 @@ def smooth_data_lu(pos_path, target_number, target_area, offset_list):
     return ego_position, obs_list, time_list, init_speed
 
 
-def smooth_data_c(pos_path, obs_path):
+def load_data_c(pos_path, obs_path):
     pos_data = pd.read_csv(pos_path)
     # 设置origin的原因是时区的时差问题
     pos_data['data_time'] = pd.to_datetime(pos_data['time'], unit='ms', origin='1970-01-01 08:00:00')
@@ -384,7 +419,7 @@ def get_obj_type(model):
     return ped_type, car_type, bicycle_motor_type
 
 
-def format_two(input_path):
+def format_path(input_path, xodr_path="", osgb_path=""):
     """
     data format:
     simulation
@@ -396,21 +431,17 @@ def format_two(input_path):
     for root, dirs, files in os.walk(input_path):
         for file in files:
             if ".xosc" == file[-5:] or ".xml" == file[-4:]:
-
-                xodrFilePath = ""
-                osgbFilePath = ""
-
                 for odrFile in os.listdir(root):
-                    if ".xodr" == odrFile[-5:]:
-                        xodrFilePath = root + "/" + odrFile
+                    if xodr_path == "" and ".xodr" == odrFile[-5:]:
+                        xodr_path = root + "/" + odrFile
                         break
 
                 for osgbFile in os.listdir(root):
-                    if ".osgb" == osgbFile[-5:]:
-                        osgbFilePath = root + "/" + osgbFile
+                    if osgb_path == "" and ".osgb" == osgbFile[-5:]:
+                        osgb_path = root + "/" + osgbFile
                         break
 
-                path_changer(root + "/" + file, xodrFilePath, osgbFilePath)
+                path_changer(root + "/" + file, xodr_path, osgb_path)
                 print("Change success: " + root + "/" + file)
 
 

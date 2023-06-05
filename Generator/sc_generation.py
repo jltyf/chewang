@@ -12,7 +12,7 @@ from scenariogeneration import ScenarioGenerator
 from scenariogeneration import xodr
 from scenariogeneration import xosc
 
-from sc_tool import read_gps_lu, smooth_data_lu, get_obj_type, WorkModel, changeCDATA, generate_osgb, format_two
+from sc_tool import read_gps_lu, load_data_lu, get_obj_type, WorkModel, changeCDATA, generate_osgb, format_path
 
 warnings.filterwarnings("ignore")
 
@@ -105,6 +105,10 @@ class Scenario(ScenarioGenerator):
         ped_type, car_type, bicycle_motor_type = get_obj_type(self.work_model)
         for i in range(len(self.obs)):
             object_list = []
+
+            # for test
+            if obj_count == 12:
+                print(111)
             for j in self.obs[i]:
                 object_list.append(j.ObjectType)
             obj_type = int(max(object_list, key=object_list.count))
@@ -332,9 +336,9 @@ class Task:
         with open(information_path, encoding='utf-8') as f:
             file_contents = f.read()
         parsed_json = json.loads(file_contents, encoding='utf-8')
-        target_number = parsed_json['number']
+        target_number_list = parsed_json['number'].split('-')
         target_area = parsed_json['area']
-        results = smooth_data_lu(pos_path, target_number, target_area, offset_list)
+        results = load_data_lu(pos_path, target_number_list, target_area, offset_list)
         gps, obs_list, time_list, init_speed = results[0], results[1], results[2], results[3]
         obs_data = list()
         for obj in obs_list:
@@ -350,7 +354,7 @@ class Task:
             os.makedirs(filename)
         files = s.generate(filename)
         generate_osgb(output_path, files[0][0].replace('xosc', 'xodr'))
-        format_two(filename)
+        format_path(filename)
         changeCDATA(files[0][0])
 
     def generateScenarios(self, abs_path, output, work_model, textBrowser=0):
@@ -368,13 +372,13 @@ class Task:
                 os.makedirs(output)
 
         parsed_json = json.loads(file_contents, encoding='utf-8')
-        target_number = parsed_json['number']
+        target_number_list = parsed_json['number'].split('-')
         target_area = parsed_json['area']
         init_speed = 0
         time_list, obs_list, gps = list(), list(), list()
         obs_data = []
         if work_model == WorkModel.roadside.value:
-            results = smooth_data_lu(pos_path, target_number, target_area, offset_list)
+            results = load_data_lu(pos_path, target_number_list, target_area, offset_list)
             if results == 401:
                 textBrowser.append(f'场景片段{abs_path}未找到自动驾驶车辆')
                 QApplication.processEvents()
@@ -460,8 +464,8 @@ class Task:
 
 
 if __name__ == "__main__":
-    rootPath = "D:/chewang/data/0531data"
-    output_path = "D:/chewang/data/0531output"
+    rootPath = "/home/tang/Documents/chewang/data/0531data/"
+    output_path = "/home/tang/Documents/chewang/data/0531output/"
     a = Task(rootPath, "data.csv", WorkModel.roadside.value)
 
     # 生成场景
