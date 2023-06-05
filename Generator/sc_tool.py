@@ -300,10 +300,11 @@ def load_data_lu(pos_path, target_number_list, target_area, offset_list):
             continue
         obs_df = obs_df.reset_index(drop=True)
 
-        # for test
-        if obj_id == 3365313461:
-            print(111)
-        print(obj_id)
+        # # for test
+        # if obj_id == 3365313461:
+        #     print(111)
+        # print(obj_id)
+
         obs_df = filter_error(obs_df)
         obs_df = obs_df.resample('100ms', on='data_time').mean()
         obs_df.dropna(inplace=True, axis=0)

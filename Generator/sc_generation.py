@@ -106,9 +106,10 @@ class Scenario(ScenarioGenerator):
         for i in range(len(self.obs)):
             object_list = []
 
-            # for test
-            if obj_count == 12:
-                print(111)
+            # # for test
+            # if obj_count == 12:
+            #     print(111)
+
             for j in self.obs[i]:
                 object_list.append(j.ObjectType)
             obj_type = int(max(object_list, key=object_list.count))
