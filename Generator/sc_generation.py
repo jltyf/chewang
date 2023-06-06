@@ -119,11 +119,11 @@ class Scenario(ScenarioGenerator):
             elif obj_type in car_type:
                 self.object_dict[scenario_mode.obj_name + str(obj_count)] = self.obs[i]
                 scenario_mode.entities.add_scenario_object(scenario_mode.obj_name + str(i), scenario_mode.white_veh,
-                                                            scenario_mode.cnt2)
+                                                           scenario_mode.cnt2)
             elif obj_type in bicycle_motor_type:
                 self.object_dict[scenario_mode.obj_name + str(obj_count)] = self.obs[i]
                 scenario_mode.entities.add_scenario_object(scenario_mode.obj_name + str(i), scenario_mode.motorcycle,
-                                                            scenario_mode.cnt2)
+                                                           scenario_mode.cnt2)
             else:
                 obj_count -= 1
             obj_count += 1
