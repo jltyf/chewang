@@ -5,7 +5,7 @@ import sys
 from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import QApplication
 
-from Generator.sc_tool import WorkModel
+from Generator.sc_tool import WorkMode
 
 sys.path.append('../')
 
@@ -45,14 +45,14 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
                 self.change_text('输出目录不存在，且创建失败，请确认！')
                 self.change_button('enable')
                 return
-        model = self.comboBox.currentText()
-        if model == '请选择数据模式':
+        mode = self.comboBox.currentText()
+        if mode == '请选择数据模式':
             self.change_text('场景还原需要选择数据格式，请检查或咨询相关人员！')
             self.change_button('enable')
             return
         else:
             self.textBrowser.clear()
-            self.generate(model, input_path, output_path)
+            self.generate(mode, input_path, output_path)
         self.change_button('enable')
 
     def change_button(self, style):
@@ -70,14 +70,14 @@ class MainWindow(QtWidgets.QMainWindow, Ui_MainWindow):
         self.textBrowser.setText(text)
         QApplication.processEvents()
 
-    def generate(self, model, input_path, output_path):
-        if model == '路端数据还原':
-            work_model = WorkModel.roadside.value
-        elif model == '车端数据还原':
-            work_model = WorkModel.car.value
+    def generate(self, mode, input_path, output_path):
+        if mode == '路端数据还原':
+            work_mode = WorkMode.roadside.value
+        elif mode == '车端数据还原':
+            work_mode = WorkMode.car.value
         else:
-            work_model = WorkModel.merge.value
-        new_task = Task(input_path, "data.csv", work_model)
+            work_mode = WorkMode.merge.value
+        new_task = Task(input_path, "data.csv", work_mode)
         self.change_text('任务正在运行，请耐心等待')
         # 生成场景
         new_task.batchRun(input_path, output_path, self.textBrowser)
