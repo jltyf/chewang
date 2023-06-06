@@ -54,6 +54,7 @@ class ObsPosition(object):
 def change_heading(data_df, mode):
     diff = data_df['heading'] - data_df['heading'].shift(1)
     data_df['diff'] = diff.abs()
+    data_df['diff'] = data_df['diff'].apply(lambda x: x - 360 if x >= 180 else x)
     diff_data = data_df[abs(data_df['diff']) >= 25]
     if len(diff_data) == 0:
         return data_df
@@ -76,14 +77,24 @@ def change_heading(data_df, mode):
                 data_df[error_start:] = left_df
                 data_df = change_heading(data_df, mode=1)
     elif mode == 0:
-        error_start = data_df[data_df['time'] == diff_data['time'].min()].index[0] - 1
-        error_end = data_df[data_df['time'] == diff_data['time'].max()].index[0] + 1
+        error_start = data_df[data_df['time'] == diff_data['time'].min()].index[0] - 2
+        error_end = data_df[data_df['time'] == diff_data['time'].max()].index[0] + 2
         error_df = data_df[error_start:error_end]
-        _ = error_df[1:-1]
-        _['heading'] = np.nan
-        error_df[1:-1] = _
-        error_df = error_df.interpolate()
-        data_df[error_start:error_end] = error_df
+        if data_df['heading'].var() > 4000:
+            return data_df
+        if len(error_df[(error_df['distance']) >= 0.7]) < 3:
+            filter_data = data_df[(data_df['diff']) <= 1]
+            diff = filter_data['heading'] - filter_data['heading'].shift(1)
+            filter_data['diff'] = diff.abs()
+            avg_heading = filter_data[(filter_data['diff']) <= 1]['heading'].mean()
+            error_df['heading'] = avg_heading
+            data_df[error_start:error_end] = error_df
+        else:
+            _ = error_df[1:-1]
+            _['heading'] = np.nan
+            error_df[1:-1] = _
+            error_df = error_df.interpolate()
+            data_df[error_start:error_end] = error_df
     return data_df
 
 
@@ -309,8 +320,21 @@ def load_data_lu(pos_path, target_number_list, target_area, offset_list):
         obs_df = obs_df.reset_index(drop=True)
 
         # # for test
-        # if obj_id == 3365313461:
+        # if obj_id == 3838623030:
+        #     print(110)
+        #     print(110)
+        # elif obj_id == 3838633430:
         #     print(111)
+        #     print(111)
+        # elif obj_id == 3838633431:
+        #     print(112)
+        #     print(112)
+        # elif obj_id == 3838633436:
+        #     print(113)
+        #     print(113)
+        # elif obj_id == 3838633566:
+        #     print(114)
+        #     print(114)
         # print(obj_id)
 
         obs_df = filter_error(obs_df)

@@ -107,7 +107,7 @@ class Scenario(ScenarioGenerator):
             object_list = []
 
             # # for test
-            # if obj_count == 12:
+            # if obj_count == 117 or obj_count == 118 or obj_count == 122 or obj_count == 127:
             #     print(111)
 
             for j in self.obs[i]:
@@ -480,8 +480,8 @@ class Task:
 
 
 if __name__ == "__main__":
-    rootPath = "/home/tang/Documents/chewang/data/0531data/"
-    output_path = "/home/tang/Documents/chewang/data/0531output/"
+    rootPath = "D:\chewang\data/0601data/20230225162356"
+    output_path = "D:\chewang\data/0601data/20230225162356"
     a = Task(rootPath, "data.csv", WorkMode.roadside.value)
 
     # 生成场景
