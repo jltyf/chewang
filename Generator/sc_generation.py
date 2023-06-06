@@ -12,12 +12,12 @@ from scenariogeneration import ScenarioGenerator
 from scenariogeneration import xodr
 from scenariogeneration import xosc
 
-from sc_tool import read_gps_lu, load_data_lu, get_obj_type, WorkModel, changeCDATA, generate_osgb, format_path
+from sc_tool import read_gps_lu, load_data_lu, get_obj_type, WorkMode, changeCDATA, generate_osgb, format_path
 
 warnings.filterwarnings("ignore")
 
 
-class ScenarioModel(object):
+class ScenarioMode(object):
     def __init__(self):
         pbb = xosc.BoundingBox(0.5, 0.5, 1.8, 2.0, 0, 0.9)
         mbb = xosc.BoundingBox(1, 2, 1.7, 1.5, 0, 0.9)
@@ -43,7 +43,7 @@ class ScenarioModel(object):
 
 
 class Scenario(ScenarioGenerator):
-    def __init__(self, gps, obs, gps_time, period, init_speed, work_model):
+    def __init__(self, gps, obs, gps_time, period, init_speed, work_mode):
         ScenarioGenerator.__init__(self)
         self.gps = gps
         self.obs = obs
@@ -56,7 +56,7 @@ class Scenario(ScenarioGenerator):
         self.time = (True, 2019, 12, 19, 12, 0, 0)  # 用于判断白天还是黑夜
         self.object_dict = {}
         self.init_speed = init_speed
-        self.work_model = work_model
+        self.work_mode = work_mode
 
     def road(self):
         positionEgo = self.gps
@@ -98,11 +98,11 @@ class Scenario(ScenarioGenerator):
 
     def scenario(self, **kwargs):
         road = xosc.RoadNetwork(self.road_file, scenegraph="/simulation0.osgb")
-        scenario_model = ScenarioModel()
-        scenario_model.entities.add_scenario_object(scenario_model.ego_name, scenario_model.red_veh, scenario_model.cnt)
+        scenario_mode = ScenarioMode()
+        scenario_mode.entities.add_scenario_object(scenario_mode.ego_name, scenario_mode.red_veh, scenario_mode.cnt)
         positionEgo = self.gps
         obj_count = 0
-        ped_type, car_type, bicycle_motor_type = get_obj_type(self.work_model)
+        ped_type, car_type, bicycle_motor_type = get_obj_type(self.work_mode)
         for i in range(len(self.obs)):
             object_list = []
 
@@ -114,16 +114,16 @@ class Scenario(ScenarioGenerator):
                 object_list.append(j.ObjectType)
             obj_type = int(max(object_list, key=object_list.count))
             if obj_type in ped_type:
-                self.object_dict[scenario_model.obj_name + str(obj_count)] = self.obs[i]
-                scenario_model.entities.add_scenario_object(scenario_model.obj_name + str(i), scenario_model.male_ped)
+                self.object_dict[scenario_mode.obj_name + str(obj_count)] = self.obs[i]
+                scenario_mode.entities.add_scenario_object(scenario_mode.obj_name + str(i), scenario_mode.male_ped)
             elif obj_type in car_type:
-                self.object_dict[scenario_model.obj_name + str(obj_count)] = self.obs[i]
-                scenario_model.entities.add_scenario_object(scenario_model.obj_name + str(i), scenario_model.white_veh,
-                                                            scenario_model.cnt2)
+                self.object_dict[scenario_mode.obj_name + str(obj_count)] = self.obs[i]
+                scenario_mode.entities.add_scenario_object(scenario_mode.obj_name + str(i), scenario_mode.white_veh,
+                                                            scenario_mode.cnt2)
             elif obj_type in bicycle_motor_type:
-                self.object_dict[scenario_model.obj_name + str(obj_count)] = self.obs[i]
-                scenario_model.entities.add_scenario_object(scenario_model.obj_name + str(i), scenario_model.motorcycle,
-                                                            scenario_model.cnt2)
+                self.object_dict[scenario_mode.obj_name + str(obj_count)] = self.obs[i]
+                scenario_mode.entities.add_scenario_object(scenario_mode.obj_name + str(i), scenario_mode.motorcycle,
+                                                            scenario_mode.cnt2)
             else:
                 obj_count -= 1
             obj_count += 1
@@ -136,10 +136,10 @@ class Scenario(ScenarioGenerator):
         step = len(positionEgo) / self.period
         step_dataEgo = []
         positionEgo1 = []
-        init.add_init_action(scenario_model.ego_name, xosc.TeleportAction(
+        init.add_init_action(scenario_mode.ego_name, xosc.TeleportAction(
             xosc.WorldPosition(x=positionEgo[0].x, y=positionEgo[0].y, z=positionEgo[0].z, h=positionEgo[0].h, p=0,
                                r=0)))
-        init.add_init_action(scenario_model.ego_name, ego_speed)
+        init.add_init_action(scenario_mode.ego_name, ego_speed)
 
         # ego car
         trajectory = xosc.Trajectory('oscTrajectory0', False)
@@ -298,17 +298,17 @@ class Scenario(ScenarioGenerator):
 
             sb.add_story(story2)
         parameter = xosc.ParameterDeclarations()
-        sce = xosc.Scenario('my scenario', 'Maggie', parameter, scenario_model.entities, sb, road,
-                            scenario_model.catalog)
+        sce = xosc.Scenario('my scenario', 'Maggie', parameter, scenario_mode.entities, sb, road,
+                            scenario_mode.catalog)
         return sce
 
 
 class Task:
-    def __init__(self, path, keyFileName, work_model):
+    def __init__(self, path, keyFileName, work_mode):
         """"初始化方法"""
         self.path = path
         self.keyFileName = keyFileName
-        self.work_model = work_model
+        self.work_mode = work_mode
 
     def getFile(self, path, file_suffix):
         files = os.listdir(path)  # 得到文件夹下的所有文件，包含文件夹名称
@@ -348,7 +348,7 @@ class Task:
 
         period = math.ceil((time_list[-1] - time_list[0]) / 1000)
 
-        s = Scenario(gps, obs_data, time_list, period, init_speed, self.work_model)
+        s = Scenario(gps, obs_data, time_list, period, init_speed, self.work_mode)
         s.print_permutations()
         filename = output + '/SIMULATION'
         if not os.path.exists:
@@ -358,7 +358,15 @@ class Task:
         format_path(filename)
         changeCDATA(files[0][0])
 
-    def generateScenarios(self, abs_path, output, work_model, textBrowser=0):
+    def generateScenarios(self, abs_path, output, work_mode, textBrowser=0):
+        """
+        generate single scenario in root path
+        :param abs_path: data input path(single data folder)
+        :param output: scenario output path
+        :param work_mode: distinguish type of input data(roadside, car, merge) 
+        :param textBrowser: APP's QTextBrowser, show program running record and result
+        :return:None
+        """
         pos_path = os.path.join(abs_path, 'data.csv')
         information_path = os.path.join(abs_path, 'information.json')
         with open(file='offset.txt', encoding='utf8') as f:
@@ -378,7 +386,7 @@ class Task:
         init_speed = 0
         time_list, obs_list, gps = list(), list(), list()
         obs_data = []
-        if work_model == WorkModel.roadside.value:
+        if work_mode == WorkMode.roadside.value:
             results = load_data_lu(pos_path, target_number_list, target_area, offset_list)
             if results == 401:
                 textBrowser.append(f'场景片段{abs_path}未找到自动驾驶车辆')
@@ -395,7 +403,7 @@ class Task:
                 if len(obj) > 10:
                     obs_data.append(read_gps_lu(obj, time_list))
 
-        s = Scenario(gps, obs_data, time_list, period, init_speed, self.work_model)
+        s = Scenario(gps, obs_data, time_list, period, init_speed, self.work_mode)
         s.print_permutations()
         filename = output + '/SIMULATION'
         if not os.path.exists:
@@ -406,6 +414,13 @@ class Task:
         QApplication.processEvents()
 
     def batchRun(self, input_path, output, textBrowser):
+        """
+        Start a process to generate scenario
+        :param input_path: data input path(root path, may include multiple data folder)
+        :param output: scenario output path
+        :param textBrowser: APP's QTextBrowser, show program running record and result
+        :return:None
+        """
         files = self.getFile(input_path, self.keyFileName)
         error_count = 0
         correct_count = 0
@@ -417,7 +432,7 @@ class Task:
         for di, absPath in enumerate(sorted(files)):
             QApplication.processEvents()
             try:
-                self.generateScenarios(absPath, output, self.work_model, textBrowser)
+                self.generateScenarios(absPath, output, self.work_mode, textBrowser)
                 correct_count += 1
             except ValueError:
                 textBrowser.append(f'场景{absPath}还原失败')
@@ -467,7 +482,7 @@ class Task:
 if __name__ == "__main__":
     rootPath = "/home/tang/Documents/chewang/data/0531data/"
     output_path = "/home/tang/Documents/chewang/data/0531output/"
-    a = Task(rootPath, "data.csv", WorkModel.roadside.value)
+    a = Task(rootPath, "data.csv", WorkMode.roadside.value)
 
     # 生成场景
     a.batchRun_test(rootPath, output_path)

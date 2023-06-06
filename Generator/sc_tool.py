@@ -20,7 +20,7 @@ crs_cs = CRS.from_epsg(32650)
 transformer = Transformer.from_crs(crs, crs_cs)
 
 
-class WorkModel(Enum):
+class WorkMode(Enum):
     roadside = 1
     car = 2
     merge = 3
@@ -51,13 +51,13 @@ class ObsPosition(object):
         self.vel = vel
 
 
-def change_heading(data_df, model):
+def change_heading(data_df, mode):
     diff = data_df['heading'] - data_df['heading'].shift(1)
     data_df['diff'] = diff.abs()
     diff_data = data_df[abs(data_df['diff']) >= 25]
     if len(diff_data) == 0:
         return data_df
-    if model == 1:
+    if mode == 1:
         error_data = data_df[(data_df['diff'] > 25) & (data_df['distance'] < 0.7)]
         if len(error_data) > 1:
             error_start = data_df[data_df['time'] == error_data['time'].min()].index[0]
@@ -67,15 +67,15 @@ def change_heading(data_df, model):
             right_heading = data_df.loc[error_start - 1, 'heading']
             error_df['heading'] = right_heading
             data_df[error_start:error_end] = error_df
-            data_df = change_heading(data_df, model=1)
+            data_df = change_heading(data_df, mode=1)
         elif len(error_data) == 1:
             error_start = data_df[data_df['time'] == error_data['time'].min()].index[0]
             left_df = data_df[error_start:]
             if left_df[1:]['diff'].mean() < 15:
                 left_df['heading'] = data_df.loc[error_start - 1, 'heading']
                 data_df[error_start:] = left_df
-                data_df = change_heading(data_df, model=1)
-    elif model == 0:
+                data_df = change_heading(data_df, mode=1)
+    elif mode == 0:
         error_start = data_df[data_df['time'] == diff_data['time'].min()].index[0] - 1
         error_end = data_df[data_df['time'] == diff_data['time'].max()].index[0] + 1
         error_df = data_df[error_start:error_end]
@@ -108,9 +108,9 @@ def filter_error(data_df):
     if len(diff_data) > 1:
         if (datetime.timedelta(milliseconds=300) < abs(
                 diff_data['time'].min() - diff_data['time'].max()) < datetime.timedelta(milliseconds=8000)):
-            data_df = change_heading(data_df, model=0)
+            data_df = change_heading(data_df, mode=0)
         else:
-            data_df = change_heading(data_df, model=1)
+            data_df = change_heading(data_df, mode=1)
 
     if data_df.loc[1, 'time'] - data_df.loc[0, 'time'] > datetime.timedelta(seconds=4):
         data_df = data_df[1:]
@@ -222,6 +222,14 @@ def load_data(csvPath, obsPath):
 
 
 def load_data_lu(pos_path, target_number_list, target_area, offset_list):
+    """
+    Load data from single folder(work mode is roadside)
+    :param pos_path: the path of file that record objects' position
+    :param target_number_list: set of ego plate number
+    :param target_area: area number
+    :param offset_list: record different area' offset of OpenDrive
+    :return:result tuple, include:(ego_position:list, obs_list:list, time_list:list, init_speed:int)
+    """
     ego_id_list = list()
 
     # 新的csv格式数据
@@ -404,12 +412,12 @@ def load_data_c(pos_path, obs_path):
     return ego_position, obs_list, time_list
 
 
-def get_obj_type(model):
-    if model == WorkModel.roadside.value:
+def get_obj_type(mode):
+    if mode == WorkMode.roadside.value:
         ped_type = [0]
         car_type = [2, 7]
         bicycle_motor_type = [1, 3]
-    elif model == WorkModel.car.value:
+    elif mode == WorkMode.car.value:
         ped_type = [7]
         car_type = [2, 3]
         bicycle_motor_type = [8]
