@@ -480,8 +480,8 @@ class Task:
 
 
 if __name__ == "__main__":
-    rootPath = "D:\chewang\data/0601data/20230225162356"
-    output_path = "D:\chewang\data/0601data/20230225162356"
+    rootPath = "/home/tang/Documents/chewang/data/0601data/"
+    output_path = "/home/tang/Documents/chewang/data/0601output/"
     a = Task(rootPath, "data.csv", WorkMode.roadside.value)
 
     # 生成场景

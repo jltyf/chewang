@@ -100,15 +100,11 @@ def change_heading(data_df, mode):
 
 def filter_error(data_df):
     if len(data_df) > 27:
-        modified_df = data_df.iloc[0:28, :]
-        b, a = signal.butter(8, 0.2, 'lowpass')
-        filtered_x = signal.filtfilt(b, a, modified_df['x'])
-        filtered_y = signal.filtfilt(b, a, modified_df['y'])
-        modified_df['x'] = filtered_x.tolist()
-
-        modified_df['y'] = filtered_y.tolist()
-        frames = [modified_df, data_df.iloc[28:, :]]
-        data_df = pd.concat(frames)
+        sos = signal.butter(8, 0.2, 'lowpass', output='sos')
+        filtered_x = signal.sosfiltfilt(sos, data_df['x'])
+        filtered_y = signal.sosfiltfilt(sos, data_df['y'])
+        data_df['x'] = signal.savgol_filter(filtered_x, 15, 2, mode='nearest')
+        data_df['y'] = signal.savgol_filter(filtered_y, 15, 2, mode='nearest')
 
     data_df['distance'] = ((data_df['x'] - data_df['x'].shift(1)) ** 2 + (
             data_df['y'] - data_df['y'].shift(1)) ** 2) ** 0.5
