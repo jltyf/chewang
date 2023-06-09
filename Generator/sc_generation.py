@@ -228,14 +228,15 @@ class Scenario(ScenarioGenerator):
             first_time = rowNew[0].time
             last_time = rowNew[-1].time
 
-            add_action = xosc.DeleteEntityAction(name)
+            init_position = xosc.WorldPosition(x=rowNew[0].x, y=rowNew[0].y, z=rowNew[0].z, h=rowNew[0].h, p=0, r=0)
+            add_action = xosc.AddEntityAction(name, init_position)
             add_trigger = xosc.ValueTrigger(name='entity_add_trigger', delay=0,
                                             conditionedge=xosc.ConditionEdge.rising,
                                             valuecondition=xosc.SimulationTimeCondition(value=first_time,
                                                                                         rule=xosc.Rule.greaterThan))
-            add_event = xosc.Event('Event_del', xosc.Priority.overwrite)
+            add_event = xosc.Event('Event_add', xosc.Priority.overwrite)
             add_event.add_trigger(add_trigger)
-            add_event.add_action('del_action', add_action)
+            add_event.add_action('add_action', add_action)
             man.add_event(add_event)
 
             trajectoryM = xosc.Trajectory('oscTrajectory1', False)
@@ -480,8 +481,8 @@ class Task:
 
 
 if __name__ == "__main__":
-    rootPath = "/home/tang/Documents/chewang/data/0601data/"
-    output_path = "/home/tang/Documents/chewang/data/0601output/"
+    rootPath = "/home/tang/Documents/chewang/data/0601data/20230219113908"
+    output_path = "/home/tang/Documents/chewang/data/0601output"
     a = Task(rootPath, "data.csv", WorkMode.roadside.value)
 
     # 生成场景

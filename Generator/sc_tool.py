@@ -526,7 +526,6 @@ def path_changer(xosc_path, xodr_path, osgb_path):
 
     # for OpenScenario v0.9, v1.0
     for RoadNetwork in treeRoot.findall('RoadNetwork'):
-
         for Logics in RoadNetwork.findall('LogicFile'):
             Logics.attrib['filepath'] = xodr_path
         for SceneGraph in RoadNetwork.findall('SceneGraphFile'):
@@ -578,4 +577,4 @@ def path_changer(xosc_path, xodr_path, osgb_path):
 
 
 if __name__ == '__main__':
-    pass
+    generate_osgb('/media/tang/KINGSTON/1101160074PCM/xodr', '/media/tang/KINGSTON/1101160074PCM/xodr/coord_transform_cidastoxosc0.xodr')
