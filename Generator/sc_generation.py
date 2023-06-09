@@ -228,7 +228,8 @@ class Scenario(ScenarioGenerator):
             first_time = rowNew[0].time
             last_time = rowNew[-1].time
 
-            init_position = xosc.WorldPosition(x=rowNew[0].x, y=rowNew[0].y, z=rowNew[0].z, h=rowNew[0].h, p=0, r=0)
+            init_position = xosc.WorldPosition(x=rowNew[0].x, y=rowNew[0].y, z=0, h=rowNew[0].h, p=0, r=0)
+            # init_position = xosc.WorldPosition(x=rowNew[0].x, y=rowNew[0].y, z=rowNew[0].z, h=rowNew[0].h, p=0, r=0)
             add_action = xosc.AddEntityAction(name, init_position)
             add_trigger = xosc.ValueTrigger(name='entity_add_trigger', delay=0,
                                             conditionedge=xosc.ConditionEdge.rising,
