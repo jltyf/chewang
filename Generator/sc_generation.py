@@ -22,6 +22,9 @@ class ScenarioMode(object):
         pbb = xosc.BoundingBox(0.5, 0.5, 1.8, 2.0, 0, 0.9)
         mbb = xosc.BoundingBox(1, 2, 1.7, 1.5, 0, 0.9)
         bb = xosc.BoundingBox(2.1, 4.5, 1.8, 1.5, 0, 0.9)
+        bbb = xosc.BoundingBox(2.55, 10.5, 3.1, 5.1, 0, 1.45)
+        bfa = xosc.Axle(0.48, 0.91, 2.5, 4.5, 1.5)
+        bba = xosc.Axle(0, 0.91, 2.5, 4.5, 1.5)
         fa = xosc.Axle(0.5, 0.6, 1.8, 3.1, 0.3)
         ba = xosc.Axle(0, 0.6, 1.8, 0, 0.3)
         prop = xosc.Properties()
@@ -29,6 +32,8 @@ class ScenarioMode(object):
         self.catalog.add_catalog('VehicleCatalog', 'Distros/Current/Config/Players/Vehicles')
         self.catalog.add_catalog('PedestrianCatalog', 'Distros/Current/Config/Players/Pedestrians')
         self.catalog.add_catalog('ControllerCatalog', 'Distros/Current/Config/Players/driverCfg.xml')
+        self.bus = xosc.Vehicle('MercedesTravego_10_ArcticWhite', xosc.VehicleCategory.bus, bbb, bfa, bba, 69.444, 200,
+                                10)
         self.red_veh = xosc.Vehicle('Audi_A3_2009_black', xosc.VehicleCategory.car, bb, fa, ba, 69.444, 200, 10)
         self.red_veh.add_property(name='control', value='external')
         self.white_veh = xosc.Vehicle('Audi_A3_2009_red', xosc.VehicleCategory.car, bb, fa, ba, 69.444, 200, 10)
@@ -101,8 +106,8 @@ class Scenario(ScenarioGenerator):
         scenario_mode = ScenarioMode()
         scenario_mode.entities.add_scenario_object(scenario_mode.ego_name, scenario_mode.red_veh, scenario_mode.cnt)
         positionEgo = self.gps
-        obj_count = 0
-        ped_type, car_type, bicycle_motor_type = get_obj_type(self.work_mode)
+        obj_count = 1
+        ped_type, car_type, bus_type, bicycle_motor_type = get_obj_type(self.work_mode)
         for i in range(len(self.obs)):
             object_list = []
 
@@ -115,14 +120,18 @@ class Scenario(ScenarioGenerator):
             obj_type = int(max(object_list, key=object_list.count))
             if obj_type in ped_type:
                 self.object_dict[scenario_mode.obj_name + str(obj_count)] = self.obs[i]
-                scenario_mode.entities.add_scenario_object(scenario_mode.obj_name + str(i), scenario_mode.male_ped)
+                scenario_mode.entities.add_scenario_object(scenario_mode.obj_name + str(obj_count), scenario_mode.male_ped)
             elif obj_type in car_type:
                 self.object_dict[scenario_mode.obj_name + str(obj_count)] = self.obs[i]
-                scenario_mode.entities.add_scenario_object(scenario_mode.obj_name + str(i), scenario_mode.white_veh,
-                                                           scenario_mode.cnt2)
+                scenario_mode.entities.add_scenario_object(scenario_mode.obj_name + str(obj_count), scenario_mode.white_veh,
+                                                           scenario_mode.cnt)
+            elif obj_type in bus_type:
+                self.object_dict[scenario_mode.obj_name + str(obj_count)] = self.obs[i]
+                scenario_mode.entities.add_scenario_object(scenario_mode.obj_name + str(obj_count), scenario_mode.bus,
+                                                           scenario_mode.cnt)
             elif obj_type in bicycle_motor_type:
                 self.object_dict[scenario_mode.obj_name + str(obj_count)] = self.obs[i]
-                scenario_mode.entities.add_scenario_object(scenario_mode.obj_name + str(i), scenario_mode.motorcycle,
+                scenario_mode.entities.add_scenario_object(scenario_mode.obj_name + str(obj_count), scenario_mode.motorcycle,
                                                            scenario_mode.cnt2)
             else:
                 obj_count -= 1
@@ -482,8 +491,8 @@ class Task:
 
 
 if __name__ == "__main__":
-    rootPath = "/home/tang/Documents/chewang/data/0601data/20230219113908"
-    output_path = "/home/tang/Documents/chewang/data/0601output"
+    rootPath = "/home/tang/Documents/chewang/data/0612data/"
+    output_path = "/home/tang/Documents/chewang/data/0612output"
     a = Task(rootPath, "data.csv", WorkMode.roadside.value)
 
     # 生成场景

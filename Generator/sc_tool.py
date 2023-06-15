@@ -311,8 +311,10 @@ def load_data_lu(pos_path, target_number_list, target_area, offset_list):
     obs_list = []
 
     for obj_id, obs_df in groups:
-        if len(obs_df) < 27:
+
+        if obs_df.iloc[-1]['time'] - obs_df.iloc[-0]['time'] < datetime.timedelta(milliseconds=700):
             continue
+
         obs_df = obs_df.reset_index(drop=True)
 
         # # for test
@@ -437,15 +439,18 @@ def get_obj_type(mode):
         ped_type = [0]
         car_type = [2, 7]
         bicycle_motor_type = [1, 3]
+        bus_type = [5]
     elif mode == WorkMode.car.value:
         ped_type = [7]
         car_type = [2, 3]
         bicycle_motor_type = [8]
+        bus_type = []
     else:
         ped_type = [7]
         car_type = [2, 3]
         bicycle_motor_type = [8]
-    return ped_type, car_type, bicycle_motor_type
+        bus_type = []
+    return ped_type, car_type, bus_type, bicycle_motor_type
 
 
 def format_path(input_path, xodr_path="", osgb_path=""):
