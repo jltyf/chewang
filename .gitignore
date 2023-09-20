@@ -159,3 +159,5 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 /Generator/out/
+/Generator/yz_ord_160m2_6m_0526_202307211446.xodr
+/Generator/yz_ord_160m2_6m_0526_202307211446.osgb
